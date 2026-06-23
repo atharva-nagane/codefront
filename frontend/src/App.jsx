@@ -1,4 +1,3 @@
-// E:\online-judge\frontend\src\App.jsx
 import { Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './shared/components/ProtectedRoute'
 import AdminRoute from './shared/components/AdminRoute'
@@ -13,6 +12,10 @@ import Leaderboard from './features/leaderboard/pages/Leaderboard'
 import AdminDashboard from './features/admin/pages/AdminDashboard'
 import Playground from './features/editor/pages/Playground'
 import Profile from './features/submissions/pages/Profile'
+import BattleLobby from './features/battle/pages/BattleLobby'
+import BattleQueue from './features/battle/pages/BattleQueue'
+import BattleArena from './features/battle/pages/BattleArena'
+import BattleResult from './features/battle/pages/BattleResult'
 
 function App() {
   useAuth()
@@ -26,9 +29,14 @@ function App() {
       <Route path="/problems/:slug" element={<ProtectedRoute><ProblemDetail /></ProtectedRoute>} />
       <Route path="/submissions/:id" element={<ProtectedRoute><SubmissionResult /></ProtectedRoute>} />
       <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
-      <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
       <Route path="/playground" element={<ProtectedRoute><Playground /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+
+      <Route path="/battle" element={<ProtectedRoute><BattleLobby /></ProtectedRoute>} />
+      <Route path="/battle/queue" element={<ProtectedRoute><BattleQueue /></ProtectedRoute>} />
+      <Route path="/battle/:battleId" element={<ProtectedRoute><BattleArena /></ProtectedRoute>} />
+      <Route path="/battle/:battleId/result" element={<ProtectedRoute><BattleResult /></ProtectedRoute>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

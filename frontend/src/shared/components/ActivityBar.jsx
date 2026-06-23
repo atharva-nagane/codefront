@@ -8,6 +8,7 @@ const ActivityBar = () => {
   const items = [
     { path: '/', icon: '⬡', label: 'Problems' },
     { path: '/playground', icon: '▶', label: 'Playground' },
+    { path: '/battle', icon: '⚔', label: 'Battle' },
     { path: '/leaderboard', icon: '◈', label: 'Leaderboard' },
   ]
 

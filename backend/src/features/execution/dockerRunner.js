@@ -35,7 +35,7 @@ const isPullMessage = (text) => {
 };
 
 const runCode = async (submissionId, code, language, input) => {
-  const dir = path.join('C:\\tmp', `sub_${submissionId}`);
+  const dir = path.join(require('os').tmpdir(), `sub_${submissionId}`);
   const config = LANGUAGE_CONFIG[language];
 
   try {
@@ -43,7 +43,9 @@ const runCode = async (submissionId, code, language, input) => {
     fs.writeFileSync(path.join(dir, config.filename), code);
     fs.writeFileSync(path.join(dir, 'input.txt'), input || '');
 
-    const dockerDir = dir.replace(/\\/g, '/').replace('C:', '/c');
+    const dockerDir = process.platform === 'win32'
+      ? dir.replace(/\\/g, '/').replace(/^([A-Z]):/, (_, l) => `/${l.toLowerCase()}`)
+      : dir;
 
     // compile if needed
     if (config.compileCmd) {
