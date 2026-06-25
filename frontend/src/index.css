@@ -40,3 +40,8 @@ a:hover {
 code, pre, .mono {
   font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
 }
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

@@ -37,6 +37,8 @@ app.use('/api/v1/battles',     require('./src/features/battle/battle.routes'));
 
 app.use(require('./src/shared/middlewares/errorHandler'));
 
+app.use('/api/v1/solo',    require('./src/features/battle/solo.routes'));
+
 // setup socket.io battle namespace
 const battleIO = io.of('/battle');
 setupBattleSocket(battleIO);

@@ -6,6 +6,7 @@ import ActivityBar from '../../../shared/components/ActivityBar'
 import IDELayout from '../../../shared/components/IDELayout'
 import AIReviewPanel from '../../../shared/components/AIReviewPanel'
 import api from '../../../shared/api/axios'
+import { SkeletonCard, SkeletonText } from '../../../shared/components/Skeleton'
 
 const difficultyColor = { Easy: '#00ff87', Medium: '#ffc107', Hard: '#ef4444' }
 
@@ -104,8 +105,24 @@ const ProblemDetail = () => {
   if (loading) return (
     <IDELayout>
       <Navbar />
-      <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ color: '#444', fontFamily: 'monospace' }}>Loading problem...</span>
+      <div style={styles.workspace}>
+        <ActivityBar />
+        <div style={styles.leftPanel}>
+          <div style={{ ...styles.tabBar }}>
+            <div style={{ ...styles.tab, ...styles.tabActive }}>
+              <Skeleton width="120px" height="0.75rem" />
+            </div>
+          </div>
+          <div style={{ padding: '1.5rem' }}>
+            <SkeletonCard />
+          </div>
+        </div>
+        <div style={styles.resizeHandle} />
+        <div style={styles.rightPanel}>
+          <div style={styles.tabBar} />
+          <div style={{ flex: 1, background: '#1e1e1e' }} />
+          <div style={styles.actionBar} />
+        </div>
       </div>
     </IDELayout>
   )

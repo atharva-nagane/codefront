@@ -16,6 +16,8 @@ import BattleLobby from './features/battle/pages/BattleLobby'
 import BattleQueue from './features/battle/pages/BattleQueue'
 import BattleArena from './features/battle/pages/BattleArena'
 import BattleResult from './features/battle/pages/BattleResult'
+import SoloArena from './features/battle/pages/SoloArena'
+import SoloResult from './features/battle/pages/SoloResult'
 
 function App() {
   useAuth()
@@ -37,7 +39,9 @@ function App() {
       <Route path="/battle/queue" element={<ProtectedRoute><BattleQueue /></ProtectedRoute>} />
       <Route path="/battle/:battleId" element={<ProtectedRoute><BattleArena /></ProtectedRoute>} />
       <Route path="/battle/:battleId/result" element={<ProtectedRoute><BattleResult /></ProtectedRoute>} />
-
+      <Route path="/battle/solo" element={<ProtectedRoute><SoloArena /></ProtectedRoute>} />
+      <Route path="/battle/solo/result" element={<ProtectedRoute><SoloResult /></ProtectedRoute>} />
+      
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

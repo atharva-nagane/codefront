@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux'
 import Navbar from '../../../shared/components/Navbar'
 import ActivityBar from '../../../shared/components/ActivityBar'
 import IDELayout from '../../../shared/components/IDELayout'
-import Spinner from '../../../shared/components/Spinner'
+import { SkeletonRow } from '../../../shared/components/Skeleton'
 import { getMySubmissions } from '../submissionsApi'
 
 const verdictColor = {
@@ -41,7 +41,7 @@ const Profile = () => {
   ).size
 
   const statusItems = [
-    { position: 'left', label: `profile.json`, icon: '○' },
+    { position: 'left', label: 'profile.json', icon: '○' },
     { position: 'right', label: `${solved} solved`, color: '#00ff87' },
     { position: 'right', label: `${submissions.length} submissions` },
   ]
@@ -52,7 +52,6 @@ const Profile = () => {
       <div style={styles.workspace}>
         <ActivityBar />
         <div style={styles.main}>
-          {/* Tab bar */}
           <div style={styles.tabBar}>
             <div style={{ ...styles.tab, ...styles.tabActive }}>
               ○ profile.json
@@ -97,10 +96,7 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Submission history */}
             <div style={styles.sectionLabel}>// submission_history</div>
-
-            {loading && <Spinner />}
 
             {!loading && submissions.length === 0 && (
               <p style={styles.empty}>
@@ -109,45 +105,55 @@ const Profile = () => {
               </p>
             )}
 
-            {!loading && submissions.length > 0 && (
-              <div style={styles.tableWrapper}>
-                <table style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>problem</th>
-                      <th style={styles.th}>language</th>
-                      <th style={styles.th}>verdict</th>
-                      <th style={styles.th}>time</th>
-                      <th style={styles.th}>date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {submissions.map(s => (
-                      <tr key={s._id} style={styles.row}
-                        onMouseEnter={e => e.currentTarget.style.background = '#1a1a1a'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      >
-                        <td style={styles.td}>
-                          <Link to={`/problems/${s.problem.slug}`} style={styles.link}>
-                            {s.problem.name}
-                          </Link>
-                        </td>
-                        <td style={{ ...styles.td, fontFamily: 'monospace', color: '#555' }}>{s.language}</td>
-                        <td style={styles.td}>
-                          <span style={{ color: verdictColor[s.verdict] || '#555', fontWeight: 600, fontSize: '0.82rem', fontFamily: 'monospace' }}>
-                            {s.verdict === 'Accepted' ? '✓' : '✗'} {s.verdict}
-                          </span>
-                        </td>
-                        <td style={{ ...styles.td, fontFamily: 'monospace', color: '#444' }}>{s.executionTime}ms</td>
-                        <td style={{ ...styles.td, color: '#333', fontFamily: 'monospace', fontSize: '0.8rem' }}>
-                          {new Date(s.createdAt).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <div style={styles.tableWrapper}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>problem</th>
+                    <th style={styles.th}>language</th>
+                    <th style={styles.th}>verdict</th>
+                    <th style={styles.th}>time</th>
+                    <th style={styles.th}>date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading
+                    ? Array(6).fill(0).map((_, i) => <SkeletonRow key={i} cols={5} />)
+                    : submissions.map(s => (
+                        <tr key={s._id} style={styles.row}
+                          onMouseEnter={e => e.currentTarget.style.background = '#1a1a1a'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                          <td style={styles.td}>
+                            <Link to={`/problems/${s.problem.slug}`} style={styles.link}>
+                              {s.problem.name}
+                            </Link>
+                          </td>
+                          <td style={{ ...styles.td, fontFamily: 'monospace', color: '#555' }}>
+                            {s.language}
+                          </td>
+                          <td style={styles.td}>
+                            <span style={{
+                              color: verdictColor[s.verdict] || '#555',
+                              fontWeight: 600,
+                              fontSize: '0.82rem',
+                              fontFamily: 'monospace',
+                            }}>
+                              {s.verdict === 'Accepted' ? '✓' : '✗'} {s.verdict}
+                            </span>
+                          </td>
+                          <td style={{ ...styles.td, fontFamily: 'monospace', color: '#444' }}>
+                            {s.executionTime}ms
+                          </td>
+                          <td style={{ ...styles.td, color: '#333', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                            {new Date(s.createdAt).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))
+                  }
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -181,7 +187,7 @@ const styles = {
   row: { borderBottom: '1px solid #1a1a1a', transition: 'background 0.1s' },
   td: { padding: '0.9rem 1.25rem', fontSize: '0.875rem', color: '#888' },
   link: { color: '#f0f0f0', textDecoration: 'none', fontFamily: 'monospace' },
-  empty: { color: '#2a2a2a', fontFamily: 'monospace', fontSize: '0.875rem' },
+  empty: { color: '#2a2a2a', fontFamily: 'monospace', fontSize: '0.875rem', marginBottom: '1rem' },
 }
 
 export default Profile

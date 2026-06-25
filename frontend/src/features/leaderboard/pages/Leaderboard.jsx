@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Navbar from '../../../shared/components/Navbar'
 import ActivityBar from '../../../shared/components/ActivityBar'
 import IDELayout from '../../../shared/components/IDELayout'
-import Spinner from '../../../shared/components/Spinner'
+import { SkeletonRow } from '../../../shared/components/Skeleton'
 import api from '../../../shared/api/axios'
 
 const Leaderboard = () => {
@@ -41,7 +41,6 @@ const Leaderboard = () => {
       <div style={styles.workspace}>
         <ActivityBar />
         <div style={styles.main}>
-          {/* Tab bar */}
           <div style={styles.tabBar}>
             <div style={{ ...styles.tab, ...styles.tabActive }}>
               ◈ leaderboard.json
@@ -55,43 +54,42 @@ const Leaderboard = () => {
               <span style={styles.subtitle}>// ranked by accepted submissions</span>
             </div>
 
-            {loading && <Spinner />}
-
             {!loading && leaderboard.length === 0 && (
               <p style={styles.empty}>// no submissions yet</p>
             )}
 
-            {!loading && leaderboard.length > 0 && (
-              <div style={styles.tableWrapper}>
-                <table style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>rank</th>
-                      <th style={styles.th}>username</th>
-                      <th style={styles.th}>solved</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leaderboard.map((entry, i) => (
-                      <tr key={entry.userId} style={styles.row}
-                        onMouseEnter={e => e.currentTarget.style.background = '#1a1a1a'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      >
-                        <td style={{ ...styles.td, color: rankColor(i), fontFamily: 'monospace', fontWeight: 700 }}>
-                          {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
-                        </td>
-                        <td style={{ ...styles.td, color: '#f0f0f0', fontFamily: 'monospace' }}>
-                          @{entry.username}
-                        </td>
-                        <td style={{ ...styles.td, color: '#00ff87', fontFamily: 'monospace', fontWeight: 700 }}>
-                          {entry.solvedCount}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <div style={styles.tableWrapper}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>rank</th>
+                    <th style={styles.th}>username</th>
+                    <th style={styles.th}>solved</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading
+                    ? Array(5).fill(0).map((_, i) => <SkeletonRow key={i} cols={3} />)
+                    : leaderboard.map((entry, i) => (
+                        <tr key={entry.userId} style={styles.row}
+                          onMouseEnter={e => e.currentTarget.style.background = '#1a1a1a'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                          <td style={{ ...styles.td, color: rankColor(i), fontFamily: 'monospace', fontWeight: 700 }}>
+                            {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                          </td>
+                          <td style={{ ...styles.td, color: '#f0f0f0', fontFamily: 'monospace' }}>
+                            @{entry.username}
+                          </td>
+                          <td style={{ ...styles.td, color: '#00ff87', fontFamily: 'monospace', fontWeight: 700 }}>
+                            {entry.solvedCount}
+                          </td>
+                        </tr>
+                      ))
+                  }
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -115,7 +113,7 @@ const styles = {
   th: { textAlign: 'left', padding: '0.75rem 1.25rem', color: '#333', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', borderBottom: '1px solid #1a1a1a', fontFamily: 'monospace' },
   row: { borderBottom: '1px solid #1a1a1a', transition: 'background 0.1s' },
   td: { padding: '0.9rem 1.25rem', fontSize: '0.9rem' },
-  empty: { color: '#2a2a2a', fontFamily: 'monospace', fontSize: '0.875rem' },
+  empty: { color: '#2a2a2a', fontFamily: 'monospace', fontSize: '0.875rem', marginBottom: '1rem' },
 }
 
 export default Leaderboard

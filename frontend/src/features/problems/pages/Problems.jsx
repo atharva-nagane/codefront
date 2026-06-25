@@ -1,12 +1,14 @@
+// E:\online-judge\frontend\src\features\problems\pages\Problems.jsx
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import Navbar from '../../../shared/components/Navbar'
 import ActivityBar from '../../../shared/components/ActivityBar'
 import IDELayout from '../../../shared/components/IDELayout'
-import Spinner from '../../../shared/components/Spinner'
+import { SkeletonRow } from '../../../shared/components/Skeleton'
 import api from '../../../shared/api/axios'
 
 const difficultyColor = { Easy: '#00ff87', Medium: '#ffc107', Hard: '#ff4444' }
+const difficultyBg = { Easy: '#00ff8711', Medium: '#ffc10711', Hard: '#ff444411' }
 const difficultyIcon = { Easy: '◇', Medium: '◈', Hard: '◆' }
 
 const Problems = () => {
@@ -83,25 +85,32 @@ const Problems = () => {
             </div>
 
             {/* Problem list as files */}
-            {loading && <Spinner />}
             <div style={styles.fileList}>
-              {filtered.map((p, i) => (
-                <div
-                  key={p._id}
-                  style={{
-                    ...styles.fileItem,
-                    background: selected === p._id ? '#1a1a1a' : 'transparent',
-                    borderLeft: selected === p._id ? '2px solid #00ff87' : '2px solid transparent',
-                  }}
-                  onClick={() => { setSelected(p._id); navigate(`/problems/${p.slug}`) }}
-                >
-                  <span style={{ color: difficultyColor[p.difficulty], marginRight: '0.5rem', fontSize: '0.7rem' }}>
-                    {difficultyIcon[p.difficulty]}
-                  </span>
-                  <span style={styles.fileName}>{p.name}</span>
-                  <span style={styles.fileIndex}>{String(i + 1).padStart(2, '0')}</span>
-                </div>
-              ))}
+              {loading
+                ? Array(8).fill(0).map((_, i) => (
+                    <div key={i} style={{ padding: '0.5rem 1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#1a1a1a', flexShrink: 0 }} />
+                      <div style={{ height: '0.75rem', background: 'linear-gradient(90deg, #1a1a1a 25%, #222 50%, #1a1a1a 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite', borderRadius: '3px', flex: 1 }} />
+                    </div>
+                  ))
+                : filtered.map((p, i) => (
+                    <div
+                      key={p._id}
+                      style={{
+                        ...styles.fileItem,
+                        background: selected === p._id ? '#1a1a1a' : 'transparent',
+                        borderLeft: selected === p._id ? '2px solid #00ff87' : '2px solid transparent',
+                      }}
+                      onClick={() => { setSelected(p._id); navigate(`/problems/${p.slug}`) }}
+                    >
+                      <span style={{ color: difficultyColor[p.difficulty], marginRight: '0.5rem', fontSize: '0.7rem' }}>
+                        {difficultyIcon[p.difficulty]}
+                      </span>
+                      <span style={styles.fileName}>{p.name}</span>
+                      <span style={styles.fileIndex}>{String(i + 1).padStart(2, '0')}</span>
+                    </div>
+                  ))
+              }
             </div>
           </div>
         </div>
@@ -117,21 +126,33 @@ const Problems = () => {
             <p style={styles.welcomeText}>Select a problem from the explorer to start coding</p>
             <div style={styles.welcomeStats}>
               <div style={styles.welcomeStat}>
-                <span style={{ color: '#00ff87', fontSize: '1.5rem', fontWeight: 700 }}>{problems.filter(p => p.difficulty === 'Easy').length}</span>
+                <span style={{ color: '#00ff87', fontSize: '1.5rem', fontWeight: 700 }}>
+                  {problems.filter(p => p.difficulty === 'Easy').length}
+                </span>
                 <span style={{ color: '#444', fontSize: '0.75rem' }}>Easy</span>
               </div>
               <div style={styles.welcomeStat}>
-                <span style={{ color: '#ffc107', fontSize: '1.5rem', fontWeight: 700 }}>{problems.filter(p => p.difficulty === 'Medium').length}</span>
+                <span style={{ color: '#ffc107', fontSize: '1.5rem', fontWeight: 700 }}>
+                  {problems.filter(p => p.difficulty === 'Medium').length}
+                </span>
                 <span style={{ color: '#444', fontSize: '0.75rem' }}>Medium</span>
               </div>
               <div style={styles.welcomeStat}>
-                <span style={{ color: '#ff4444', fontSize: '1.5rem', fontWeight: 700 }}>{problems.filter(p => p.difficulty === 'Hard').length}</span>
+                <span style={{ color: '#ff4444', fontSize: '1.5rem', fontWeight: 700 }}>
+                  {problems.filter(p => p.difficulty === 'Hard').length}
+                </span>
                 <span style={{ color: '#444', fontSize: '0.75rem' }}>Hard</span>
               </div>
             </div>
             <div style={styles.shortcuts}>
-              <div style={styles.shortcut}><kbd style={styles.kbd}>click</kbd><span style={styles.shortcutLabel}>open problem</span></div>
-              <div style={styles.shortcut}><kbd style={styles.kbd}>ctrl+k</kbd><span style={styles.shortcutLabel}>search (coming soon)</span></div>
+              <div style={styles.shortcut}>
+                <kbd style={styles.kbd}>click</kbd>
+                <span style={styles.shortcutLabel}>open problem</span>
+              </div>
+              <div style={styles.shortcut}>
+                <kbd style={styles.kbd}>ctrl+k</kbd>
+                <span style={styles.shortcutLabel}>search (coming soon)</span>
+              </div>
             </div>
           </div>
         </div>
