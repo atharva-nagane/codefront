@@ -26,8 +26,57 @@ app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-app.get('/api/v1/health', (req, res) => res.json({ status: 'ok' }));
+const asyncWrapper = require('./src/shared/utils/asyncWrapper');
+const redis = require('./src/config/redis');
 
+app.get('/api/v1/health', asyncWrapper(async (req, res) => {
+  const mongoose = require('mongoose');
+  const { submissionQueue } = require('./src/features/execution/execution.queue');
+
+  // check MongoDB
+  const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+
+  // check Redis
+  let redisStatus = 'disconnected';
+  try {
+    await redis.ping();
+    redisStatus = 'connected';
+  } catch {}
+
+  // queue stats
+  let queueStats = {};
+  try {
+    queueStats = {
+      waiting: await submissionQueue.getWaitingCount(),
+      active: await submissionQueue.getActiveCount(),
+      completed: await submissionQueue.getCompletedCount(),
+      failed: await submissionQueue.getFailedCount(),
+    };
+  } catch {}
+
+  // active battles in Redis
+  let activeBattles = 0;
+  try {
+    const keys = await redis.keys('battle:session:*');
+    activeBattles = keys.length;
+  } catch {}
+
+  const uptime = Math.floor(process.uptime());
+  const uptimeStr = `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${uptime % 60}s`;
+
+  res.json({
+    status: dbStatus === 'connected' && redisStatus === 'connected' ? 'ok' : 'degraded',
+    timestamp: new Date().toISOString(),
+    uptime: uptimeStr,
+    services: {
+      database: dbStatus,
+      redis: redisStatus,
+    },
+    queue: queueStats,
+    activeBattles,
+    version: '1.0.0',
+  });
+}));
 app.use('/api/v1/auth',        require('./src/features/auth/auth.routes'));
 app.use('/api/v1/problems',    require('./src/features/problems/problem.routes'));
 app.use('/api/v1/submissions', require('./src/features/submissions/submission.routes'));
