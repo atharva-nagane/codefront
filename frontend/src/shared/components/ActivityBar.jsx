@@ -9,6 +9,7 @@ const ActivityBar = () => {
     { path: '/', icon: '⬡', label: 'Problems' },
     { path: '/playground', icon: '▶', label: 'Playground' },
     { path: '/battle', icon: '⚔', label: 'Battle' },
+    { path: '/contests', icon: '◉', label: 'Contests' },
     { path: '/leaderboard', icon: '◈', label: 'Leaderboard' },
   ]
 

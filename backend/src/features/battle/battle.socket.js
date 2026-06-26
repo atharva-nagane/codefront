@@ -83,6 +83,9 @@ const endBattle = async (io, battleId, session, reason) => {
 };
 
 const setupBattleSocket = (io) => {
+  // per-user submit cooldown map
+  const submitCooldowns = new Map();
+
   io.use(async (socket, next) => {
     const user = await authenticateSocket(socket);
     if (!user) return next(new Error('Unauthorized'));
@@ -120,7 +123,6 @@ const setupBattleSocket = (io) => {
         socket.emit('battle:queued', { mode });
 
         const tryMatch = async () => {
-          
           const match = await findMatch(mode);
           if (!match) return false;
 
@@ -258,10 +260,22 @@ const setupBattleSocket = (io) => {
     // ── SUBMIT IN BATTLE ────────────────────────────────────────────────────
     socket.on('battle:submit', async ({ battleId, problemId, code, language }) => {
       try {
+        const userId = socket.user._id.toString();
+
+        // rate limit — 1 submission per 3 seconds per user
+        const now = Date.now();
+        const lastSubmit = submitCooldowns.get(userId) || 0;
+        if (now - lastSubmit < 3000) {
+          socket.emit('battle:error', {
+            message: `Please wait ${Math.ceil((3000 - (now - lastSubmit)) / 1000)}s before submitting again`,
+          });
+          return;
+        }
+        submitCooldowns.set(userId, now);
+
         const session = await getSession(battleId);
         if (!session) return socket.emit('battle:error', { message: 'Battle not found' });
 
-        const userId = socket.user._id.toString();
         const isPlayerA = session.playerA.userId === userId;
         const playerKey = isPlayerA ? 'playerA' : 'playerB';
         const opponentKey = isPlayerA ? 'playerB' : 'playerA';
@@ -361,6 +375,10 @@ const setupBattleSocket = (io) => {
     socket.on('disconnect', async () => {
       logger.info(`Socket disconnected: ${socket.user.username}`);
       const userId = socket.user._id.toString();
+
+      // cleanup rate limit entry
+      submitCooldowns.delete(userId);
+
       const battleId = await getUserBattle(userId);
 
       if (battleId) {
