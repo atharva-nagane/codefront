@@ -1,9 +1,19 @@
 import { io } from 'socket.io-client'
+import api from '../../shared/api/axios'
 
 let socket = null
 
-export const connectBattleSocket = (token) => {
+export const connectBattleSocket = async () => {
   if (socket?.connected) return socket
+
+  // get fresh token from backend
+  let token = null
+  try {
+    const res = await api.get('/auth/token')
+    token = res.data.token
+  } catch (err) {
+    console.error('Failed to get token for socket')
+  }
 
   socket = io('https://codefront.duckdns.org/battle', {
     auth: { token },

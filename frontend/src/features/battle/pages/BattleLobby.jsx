@@ -21,16 +21,12 @@ const BattleLobby = () => {
   const navigate = useNavigate()
   const { user } = useSelector(state => state.auth)
 
-  const handleEnterMulti = () => {
+  const handleEnterMulti = async () => {
     if (!selectedMode) return
     setEntering(true)
 
-    const token = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('accessToken='))
-      ?.split('=')[1]
+    const socket = await connectBattleSocket()
 
-    const socket = connectBattleSocket(token)
     socket.emit('battle:join_queue', selectedMode)
 
     socket.on('battle:queued', () => {

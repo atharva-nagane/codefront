@@ -10,5 +10,9 @@ router.post('/login', authLimiter, login);
 router.post('/logout', logout);
 router.post('/refresh', refresh);
 router.get('/me', authMiddleware, getMe);
-
+router.get('/token', authMiddleware, asyncWrapper(async (req, res) => {
+  const { signAccessToken } = require('./auth.service');
+  const token = signAccessToken(req.user._id);
+  res.json({ success: true, token });
+}));
 module.exports = router;
