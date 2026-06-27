@@ -1,0 +1,6 @@
+node_modules
+.env
+logs
+tmp
+src/__tests__
+*.test.js

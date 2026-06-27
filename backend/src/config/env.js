@@ -1,9 +1,7 @@
-// E:\online-judge\backend\src\config\env.js
 const { execSync } = require('child_process');
 const logger = require('../shared/utils/logger');
 
 const requiredVars = [
-  'PORT',
   'MONGO_URI',
   'REDIS_URL',
   'JWT_SECRET',
@@ -12,6 +10,11 @@ const requiredVars = [
   'JWT_REFRESH_EXPIRY',
   'CLIENT_URL',
 ];
+
+// PORT only required for server, not worker
+if (!process.env.IS_WORKER) {
+  requiredVars.push('PORT');
+}
 
 const missing = requiredVars.filter(key => !process.env[key]);
 
@@ -25,7 +28,7 @@ try {
   execSync('docker ps', { stdio: 'ignore' });
   logger.info('Docker is running');
 } catch (err) {
-  logger.warn('Docker is not running — code execution will fail. Start Docker Desktop before submitting code.');
+  logger.warn('Docker is not running — code execution will fail.');
 }
 
 logger.info('All environment variables loaded successfully');

@@ -1,0 +1,73 @@
+
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: codefront-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: codefront-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGO_URI=${MONGO_URI}
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_ACCESS_EXPIRY=${JWT_ACCESS_EXPIRY}
+      - JWT_REFRESH_EXPIRY=${JWT_REFRESH_EXPIRY}
+      - CLIENT_URL=${CLIENT_URL}
+      - WORKER_CONCURRENCY=${WORKER_CONCURRENCY}
+      - DOCKER_TIME_LIMIT_SEC=${DOCKER_TIME_LIMIT_SEC}
+      - DOCKER_MEMORY_MB=${DOCKER_MEMORY_MB}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp:/tmp
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    container_name: codefront-worker
+    environment:
+      - NODE_ENV=production
+      - MONGO_URI=${MONGO_URI}
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_ACCESS_EXPIRY=${JWT_ACCESS_EXPIRY}
+      - JWT_REFRESH_EXPIRY=${JWT_REFRESH_EXPIRY}
+      - CLIENT_URL=${CLIENT_URL}
+      - WORKER_CONCURRENCY=${WORKER_CONCURRENCY}
+      - DOCKER_TIME_LIMIT_SEC=${DOCKER_TIME_LIMIT_SEC}
+      - DOCKER_MEMORY_MB=${DOCKER_MEMORY_MB}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - IS_WORKER=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp:/tmp
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  redis_data:

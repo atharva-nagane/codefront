@@ -6,7 +6,7 @@ import ActivityBar from '../../../shared/components/ActivityBar'
 import IDELayout from '../../../shared/components/IDELayout'
 import AIReviewPanel from '../../../shared/components/AIReviewPanel'
 import api from '../../../shared/api/axios'
-import { SkeletonCard, SkeletonText } from '../../../shared/components/Skeleton'
+import Skeleton, { SkeletonCard, SkeletonText } from '../../../shared/components/Skeleton'
 
 const difficultyColor = { Easy: '#00ff87', Medium: '#ffc107', Hard: '#ef4444' }
 
