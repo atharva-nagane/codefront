@@ -1,4 +1,4 @@
-// E:\online-judge\backend\src\features\auth\auth.routes.js
+const asyncWrapper = require('../../shared/utils/asyncWrapper');
 const express = require('express');
 const router = express.Router();
 const { register, login, logout, refresh, getMe } = require('./auth.controller');
