@@ -5,10 +5,11 @@ let socket = null
 export const connectBattleSocket = (token) => {
   if (socket?.connected) return socket
 
-  socket = io(`${import.meta.env.VITE_API_URL.replace('/api/v1', '')}/battle`, {
+  socket = io('https://codefront.duckdns.org/battle', {
     auth: { token },
     withCredentials: true,
     autoConnect: true,
+    transports: ['websocket', 'polling'],
   })
 
   socket.on('connect', () => console.log('Battle socket connected'))

@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "http://15.207.86.201:5000/api/:path*"
+      "destination": "https://codefront.duckdns.org/api/:path*"
     },
     {
       "source": "/socket.io/:path*",
-      "destination": "http://15.207.86.201:5000/socket.io/:path*"
+      "destination": "https://codefront.duckdns.org/socket.io/:path*"
     },
     {
       "source": "/(.*)",
