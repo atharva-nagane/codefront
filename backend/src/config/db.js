@@ -4,7 +4,12 @@ const logger = require('../shared/utils/logger');
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(process.env.MONGO_URI, {
+      maxPoolSize: 10,
+      minPoolSize: 2,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
     logger.info('MongoDB connected');
   } catch (err) {
     logger.error(`MongoDB connection failed: ${err.message}`);

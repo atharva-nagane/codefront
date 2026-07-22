@@ -17,14 +17,20 @@ const Problems = () => {
   const [filter, setFilter] = useState('')
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(null)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [loadingMore, setLoadingMore] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
     const fetchProblems = async () => {
+      setLoading(true)
       try {
-        const params = filter ? { difficulty: filter } : {}
+        const params = { page: 1, limit: 100, ...(filter ? { difficulty: filter } : {}) }
         const res = await api.get('/problems', { params })
         setProblems(res.data.problems)
+        setPage(res.data.page)
+        setTotalPages(res.data.totalPages)
       } catch (err) {
         console.error(err)
       } finally {
@@ -33,6 +39,21 @@ const Problems = () => {
     }
     fetchProblems()
   }, [filter])
+
+  const loadMore = async () => {
+    setLoadingMore(true)
+    try {
+      const params = { page: page + 1, limit: 100, ...(filter ? { difficulty: filter } : {}) }
+      const res = await api.get('/problems', { params })
+      setProblems(prev => [...prev, ...res.data.problems])
+      setPage(res.data.page)
+      setTotalPages(res.data.totalPages)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   const filtered = problems.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase())
@@ -111,6 +132,11 @@ const Problems = () => {
                     </div>
                   ))
               }
+              {!loading && !search && page < totalPages && (
+                <button onClick={loadMore} disabled={loadingMore} style={styles.loadMoreBtn}>
+                  {loadingMore ? 'loading...' : 'load more'}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -129,19 +155,19 @@ const Problems = () => {
                 <span style={{ color: '#00ff87', fontSize: '1.5rem', fontWeight: 700 }}>
                   {problems.filter(p => p.difficulty === 'Easy').length}
                 </span>
-                <span style={{ color: '#444', fontSize: '0.75rem' }}>Easy</span>
+                <span style={{ color: '#888', fontSize: '0.75rem' }}>Easy</span>
               </div>
               <div style={styles.welcomeStat}>
                 <span style={{ color: '#ffc107', fontSize: '1.5rem', fontWeight: 700 }}>
                   {problems.filter(p => p.difficulty === 'Medium').length}
                 </span>
-                <span style={{ color: '#444', fontSize: '0.75rem' }}>Medium</span>
+                <span style={{ color: '#888', fontSize: '0.75rem' }}>Medium</span>
               </div>
               <div style={styles.welcomeStat}>
                 <span style={{ color: '#ff4444', fontSize: '1.5rem', fontWeight: 700 }}>
                   {problems.filter(p => p.difficulty === 'Hard').length}
                 </span>
-                <span style={{ color: '#444', fontSize: '0.75rem' }}>Hard</span>
+                <span style={{ color: '#888', fontSize: '0.75rem' }}>Hard</span>
               </div>
             </div>
             <div style={styles.shortcuts}>
@@ -178,16 +204,17 @@ const styles = {
   fileItem: { display: 'flex', alignItems: 'center', padding: '0.5rem 1rem', cursor: 'pointer', transition: 'background 0.1s' },
   fileName: { color: '#888', fontSize: '0.82rem', flex: 1, fontFamily: 'monospace', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   fileIndex: { color: '#2a2a2a', fontSize: '0.7rem', fontFamily: 'monospace', marginLeft: '0.5rem' },
+  loadMoreBtn: { width: '100%', background: 'transparent', border: 'none', borderTop: '1px solid #1a1a1a', padding: '0.5rem', color: '#555', fontSize: '0.75rem', fontFamily: 'monospace', cursor: 'pointer' },
   main: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'auto' },
   welcome: { textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' },
   welcomeLogo: { fontFamily: 'monospace', fontSize: '2rem', fontWeight: 800, color: '#f0f0f0', letterSpacing: '-1px' },
-  welcomeText: { color: '#333', fontSize: '0.875rem', margin: 0 },
+  welcomeText: { color: '#888', fontSize: '0.875rem', margin: 0 },
   welcomeStats: { display: 'flex', gap: '3rem' },
   welcomeStat: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' },
   shortcuts: { display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' },
   shortcut: { display: 'flex', alignItems: 'center', gap: '0.75rem' },
   kbd: { background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '4px', padding: '0.15rem 0.5rem', fontSize: '0.75rem', fontFamily: 'monospace', color: '#555' },
-  shortcutLabel: { color: '#333', fontSize: '0.8rem' },
+  shortcutLabel: { color: '#888', fontSize: '0.8rem' },
 }
 
 export default Problems

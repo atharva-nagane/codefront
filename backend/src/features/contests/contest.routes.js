@@ -7,8 +7,7 @@ const AppError = require('../../shared/utils/AppError');
 const Contest = require('./contest.model');
 const ContestSubmission = require('./contestSubmission.model');
 const Problem = require('../problems/problem.model');
-const TestCase = require('../testcases/testcase.model');
-const { runCode } = require('../execution/dockerRunner');
+const { addJob } = require('../execution/execution.queue');
 const VERDICTS = require('../../shared/constants/verdicts');
 const logger = require('../../shared/utils/logger');
 
@@ -120,38 +119,16 @@ router.post('/:id/submit', authMiddleware, asyncWrapper(async (req, res) => {
     verdict: VERDICTS.PENDING,
   });
 
-  // run execution in background
-  (async () => {
-    try {
-      const testCases = await TestCase.find({ problem: problemId });
-      const results = await Promise.all(
-        testCases.map(tc =>
-          runCode(`contest_${submission._id}_${Date.now()}`, code, language, tc.input)
-        )
-      );
-
-      let verdict = VERDICTS.ACCEPTED;
-      let totalTime = 0;
-
-      for (let i = 0; i < results.length; i++) {
-        totalTime += results[i].executionTime;
-        if (results[i].verdict) { verdict = results[i].verdict; break; }
-        if (results[i].output.trim() !== testCases[i].output.trim()) {
-          verdict = VERDICTS.WRONG_ANSWER; break;
-        }
-      }
-
-      await ContestSubmission.findByIdAndUpdate(submission._id, {
-        verdict,
-        executionTime: Math.round(totalTime / (testCases.length || 1)),
-      });
-    } catch (err) {
-      logger.error(`Contest submission execution error: ${err.message}`);
-      await ContestSubmission.findByIdAndUpdate(submission._id, {
-        verdict: VERDICTS.RUNTIME_ERROR,
-      });
-    }
-  })();
+  // route through the same Bull queue/worker as regular submissions so a
+  // burst of contest submissions doesn't block the event loop synchronously
+  try {
+    await addJob(submission._id.toString(), 'contest');
+  } catch (err) {
+    // queue unreachable — fail fast with a retryable error instead of
+    // leaving the submission stuck as Pending with no worker to pick it up
+    await ContestSubmission.findByIdAndUpdate(submission._id, { verdict: VERDICTS.RUNTIME_ERROR });
+    throw new AppError('Execution queue unavailable, please try again shortly', 503);
+  }
 
   res.status(201).json({ success: true, submissionId: submission._id });
 }));

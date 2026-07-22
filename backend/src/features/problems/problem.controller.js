@@ -6,8 +6,21 @@ const { createProblemSchema, createTestCaseSchema } = require('./problem.validat
 
 const listProblems = asyncWrapper(async (req, res) => {
   const { difficulty, tag } = req.query;
-  const problems = await getAllProblems({ difficulty, tag });
-  res.json({ success: true, count: problems.length, problems });
+  const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
+
+  const { problems, total } = await getAllProblems({ difficulty, tag }, { page, limit });
+
+  res.json({
+    success: true,
+    count: problems.length,
+    data: problems,
+    problems,
+    page,
+    limit,
+    total,
+    totalPages: Math.ceil(total / limit),
+  });
 });
 
 const getSingleProblem = asyncWrapper(async (req, res) => {

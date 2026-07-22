@@ -2,14 +2,23 @@
 const Problem = require('./problem.model');
 const TestCase = require('../testcases/testcase.model');
 
-const getAllProblems = async (filters = {}) => {
+const getAllProblems = async (filters = {}, pagination = {}) => {
   const query = {};
   if (filters.difficulty) query.difficulty = filters.difficulty;
   if (filters.tag) query.tags = { $in: [filters.tag] };
 
-  return await Problem.find(query)
-    .select('name slug difficulty tags timeLimit memoryLimit')
-    .sort({ createdAt: -1 });
+  const { page = 1, limit = 20 } = pagination;
+
+  const [problems, total] = await Promise.all([
+    Problem.find(query)
+      .select('name slug difficulty tags timeLimit memoryLimit')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit),
+    Problem.countDocuments(query),
+  ]);
+
+  return { problems, total };
 };
 
 const getProblemBySlug = async (slug) => {

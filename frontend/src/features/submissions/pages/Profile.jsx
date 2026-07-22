@@ -21,12 +21,17 @@ const Profile = () => {
   const { user } = useSelector((state) => state.auth)
   const [submissions, setSubmissions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
 
   useEffect(() => {
     const fetch = async () => {
       try {
-        const data = await getMySubmissions()
-        setSubmissions(data)
+        const data = await getMySubmissions(null, 1)
+        setSubmissions(data.submissions)
+        setPage(data.page)
+        setTotalPages(data.totalPages)
       } catch (err) {
         console.error('Failed to load submissions')
       } finally {
@@ -35,6 +40,20 @@ const Profile = () => {
     }
     fetch()
   }, [])
+
+  const loadMore = async () => {
+    setLoadingMore(true)
+    try {
+      const data = await getMySubmissions(null, page + 1)
+      setSubmissions(prev => [...prev, ...data.submissions])
+      setPage(data.page)
+      setTotalPages(data.totalPages)
+    } catch (err) {
+      console.error('Failed to load more submissions')
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   const solved = new Set(
     submissions.filter(s => s.verdict === 'Accepted').map(s => s.problem._id)
@@ -142,10 +161,10 @@ const Profile = () => {
                               {s.verdict === 'Accepted' ? '✓' : '✗'} {s.verdict}
                             </span>
                           </td>
-                          <td style={{ ...styles.td, fontFamily: 'monospace', color: '#444' }}>
+                          <td style={{ ...styles.td, fontFamily: 'monospace', color: '#888' }}>
                             {s.executionTime}ms
                           </td>
-                          <td style={{ ...styles.td, color: '#333', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                          <td style={{ ...styles.td, color: '#888', fontFamily: 'monospace', fontSize: '0.8rem' }}>
                             {new Date(s.createdAt).toLocaleDateString()}
                           </td>
                         </tr>
@@ -154,6 +173,14 @@ const Profile = () => {
                 </tbody>
               </table>
             </div>
+
+            {!loading && page < totalPages && (
+              <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <button onClick={loadMore} disabled={loadingMore} style={styles.loadMoreBtn}>
+                  {loadingMore ? 'loading...' : 'load more'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -173,12 +200,12 @@ const styles = {
   avatarSection: { display: 'flex', alignItems: 'center', gap: '1rem' },
   avatar: { width: '48px', height: '48px', background: '#00ff87', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 700, color: '#0a0a0a', flexShrink: 0 },
   username: { color: '#f0f0f0', fontWeight: 700, fontSize: '1rem', fontFamily: 'monospace', marginBottom: '0.2rem' },
-  fullName: { color: '#444', fontSize: '0.875rem', marginBottom: '0.35rem' },
+  fullName: { color: '#888', fontSize: '0.875rem', marginBottom: '0.35rem' },
   adminBadge: { background: '#ffc10722', color: '#ffc107', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '3px', letterSpacing: '0.05em', border: '1px solid #ffc10744' },
   statsRow: { display: 'flex', alignItems: 'center', gap: '2rem' },
   stat: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem' },
   statNum: { color: '#00ff87', fontSize: '1.5rem', fontWeight: 700, fontFamily: 'monospace' },
-  statLabel: { color: '#333', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' },
+  statLabel: { color: '#888', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' },
   statDivider: { width: '1px', height: '40px', background: '#1a1a1a' },
   sectionLabel: { color: '#2a2a2a', fontFamily: 'monospace', fontSize: '0.8rem', marginBottom: '1rem' },
   tableWrapper: { background: '#111', border: '1px solid #1a1a1a', borderRadius: '6px', overflow: 'hidden' },
@@ -188,6 +215,7 @@ const styles = {
   td: { padding: '0.9rem 1.25rem', fontSize: '0.875rem', color: '#888' },
   link: { color: '#f0f0f0', textDecoration: 'none', fontFamily: 'monospace' },
   empty: { color: '#2a2a2a', fontFamily: 'monospace', fontSize: '0.875rem', marginBottom: '1rem' },
+  loadMoreBtn: { background: '#111', border: '1px solid #2a2a2a', borderRadius: '4px', padding: '0.5rem 1.5rem', color: '#888', fontSize: '0.8rem', fontFamily: 'monospace', cursor: 'pointer' },
 }
 
 export default Profile

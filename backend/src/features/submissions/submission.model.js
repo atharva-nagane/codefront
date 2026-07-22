@@ -35,10 +35,14 @@ const submissionSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  idempotencyKey: {
+    type: String,
+  },
 }, { timestamps: true });
 
 submissionSchema.index({ user: 1 });
 submissionSchema.index({ problem: 1 });
+submissionSchema.index({ user: 1, problem: 1, idempotencyKey: 1, createdAt: -1 });
 
 const Submission = mongoose.model('Submission', submissionSchema);
 module.exports = Submission;

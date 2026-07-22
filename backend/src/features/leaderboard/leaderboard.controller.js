@@ -1,10 +1,15 @@
 
 const asyncWrapper = require('../../shared/utils/asyncWrapper');
-const { getLeaderboard } = require('./leaderboard.service');
+const { getLeaderboard, rebuildLeaderboard } = require('./leaderboard.service');
 
 const fetchLeaderboard = asyncWrapper(async (req, res) => {
   const leaderboard = await getLeaderboard();
   res.json({ success: true, leaderboard });
 });
 
-module.exports = { fetchLeaderboard };
+const rebuild = asyncWrapper(async (req, res) => {
+  const count = await rebuildLeaderboard();
+  res.json({ success: true, message: `Leaderboard rebuilt from MongoDB (${count} users)` });
+});
+
+module.exports = { fetchLeaderboard, rebuild };
