@@ -150,7 +150,7 @@ const styles = {
   panelBody: { padding: '1.25rem', overflowY: 'auto', flex: 1 },
   loadingState: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '2rem 0' },
   spinner: { width: '24px', height: '24px', border: '2px solid #1a1a1a', borderTop: '2px solid #00ff87', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
-  loadingText: { color: '#444', fontSize: '0.875rem', margin: 0 },
+  loadingText: { color: '#888', fontSize: '0.875rem', margin: 0 },
   reviewText: { display: 'flex', flexDirection: 'column', gap: '0.25rem' },
   reviewLine: { margin: '0.15rem 0', fontSize: '0.875rem', lineHeight: 1.7 },
   errorBox: { background: '#ff444411', border: '1px solid #ff4444', color: '#ff4444', padding: '0.75rem', borderRadius: '6px', fontSize: '0.85rem' },

@@ -506,12 +506,12 @@ const ContestDetail = () => {
                     <tbody>
                       {leaderboard.map((entry, i) => (
                         <tr key={entry.userId} style={styles.row}>
-                          <td style={{ ...styles.td, fontFamily: 'monospace', color: i === 0 ? '#ffc107' : i === 1 ? '#888' : i === 2 ? '#cd7f32' : '#333' }}>
+                          <td style={{ ...styles.td, fontFamily: 'monospace', color: i === 0 ? '#ffc107' : i === 1 ? '#888' : i === 2 ? '#cd7f32' : '#888' }}>
                             {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
                           </td>
                           <td style={{ ...styles.td, color: '#f0f0f0', fontFamily: 'monospace' }}>@{entry.username}</td>
                           <td style={{ ...styles.td, color: '#00ff87', fontFamily: 'monospace', fontWeight: 700 }}>{entry.solvedCount}</td>
-                          <td style={{ ...styles.td, color: '#444', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                          <td style={{ ...styles.td, color: '#888', fontFamily: 'monospace', fontSize: '0.8rem' }}>
                             {entry.lastAcceptedAt ? new Date(entry.lastAcceptedAt).toLocaleTimeString() : '—'}
                           </td>
                         </tr>
@@ -550,8 +550,8 @@ const ContestDetail = () => {
                               {s.verdict === 'Accepted' ? '✓' : s.verdict === 'Pending' ? '◌' : '✗'} {s.verdict}
                             </span>
                           </td>
-                          <td style={{ ...styles.td, color: '#444', fontFamily: 'monospace' }}>{s.executionTime}ms</td>
-                          <td style={{ ...styles.td, color: '#333', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                          <td style={{ ...styles.td, color: '#888', fontFamily: 'monospace' }}>{s.executionTime}ms</td>
+                          <td style={{ ...styles.td, color: '#888', fontFamily: 'monospace', fontSize: '0.8rem' }}>
                             {new Date(s.submittedAt).toLocaleTimeString()}
                           </td>
                         </tr>
@@ -581,7 +581,7 @@ const styles = {
   tabSpacer: { flex: 1 },
   regBtn: { background: '#00ff87', color: '#0a0a0a', border: 'none', padding: '0 1rem', height: '36px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', borderLeft: '1px solid #1a1a1a' },
   unregBtn: { background: 'transparent', color: '#00ff87', border: 'none', padding: '0 1rem', height: '36px', fontFamily: 'monospace', fontSize: '0.78rem', cursor: 'pointer', borderLeft: '1px solid #1a1a1a' },
-  notRegistered: { color: '#444', fontSize: '0.78rem', fontFamily: 'monospace', padding: '0 1rem', borderLeft: '1px solid #1a1a1a' },
+  notRegistered: { color: '#888', fontSize: '0.78rem', fontFamily: 'monospace', padding: '0 1rem', borderLeft: '1px solid #1a1a1a' },
 
   // locked layout
   lockedLayout: { display: 'flex', flex: 1, overflow: 'hidden', background: '#0a0a0a' },
@@ -590,7 +590,7 @@ const styles = {
   countdownCard: { background: '#111', border: '1px solid #ffc10733', borderRadius: '8px', padding: '2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' },
   countdownLabel: { color: '#2a2a2a', fontFamily: 'monospace', fontSize: '0.78rem' },
   countdownTimer: { color: '#ffc107', fontFamily: 'monospace', fontSize: '3rem', fontWeight: 800, letterSpacing: '0.05em', lineHeight: 1 },
-  countdownSub: { color: '#444', fontFamily: 'monospace', fontSize: '0.78rem' },
+  countdownSub: { color: '#888', fontFamily: 'monospace', fontSize: '0.78rem' },
   registeredTag: { background: '#00ff8711', border: '1px solid #00ff8733', color: '#00ff87', padding: '0.3rem 0.75rem', borderRadius: '4px', fontSize: '0.78rem', fontFamily: 'monospace' },
   notRegisteredTag: { background: '#ffc10711', border: '1px solid #ffc10733', color: '#ffc107', padding: '0.3rem 0.75rem', borderRadius: '4px', fontSize: '0.78rem', fontFamily: 'monospace' },
   lockedProblemsCard: { background: '#111', border: '1px solid #1a1a1a', borderRadius: '8px', padding: '1.25rem' },
@@ -609,11 +609,11 @@ const styles = {
   participantAvatar: { width: '24px', height: '24px', background: '#00ff8722', border: '1px solid #00ff8744', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: '#00ff87', flexShrink: 0 },
   participantName: { color: '#555', fontFamily: 'monospace', fontSize: '0.8rem', flex: 1 },
   youBadge: { background: '#00ff8722', color: '#00ff87', fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '3px', fontFamily: 'monospace', border: '1px solid #00ff8744' },
-  moreParticipants: { color: '#333', fontFamily: 'monospace', fontSize: '0.75rem', paddingTop: '0.5rem' },
+  moreParticipants: { color: '#888', fontFamily: 'monospace', fontSize: '0.75rem', paddingTop: '0.5rem' },
   infoCard: { background: '#111', border: '1px solid #1a1a1a', borderRadius: '8px', padding: '1.25rem' },
   infoTitle: { color: '#2a2a2a', fontFamily: 'monospace', fontSize: '0.72rem', marginBottom: '0.75rem' },
   infoRow: { display: 'flex', justifyContent: 'space-between', fontFamily: 'monospace', fontSize: '0.8rem', marginBottom: '0.5rem' },
-  infoKey: { color: '#333' },
+  infoKey: { color: '#888' },
   infoVal: { color: '#666' },
 
   // ended layout
@@ -621,7 +621,7 @@ const styles = {
   endedBanner: { display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.5rem', background: '#111', borderBottom: '1px solid #1a1a1a', flexShrink: 0 },
   endedIcon: { fontSize: '1.5rem' },
   endedTitle: { color: '#f0f0f0', fontWeight: 700, fontSize: '0.95rem' },
-  endedSub: { color: '#444', fontSize: '0.8rem', fontFamily: 'monospace' },
+  endedSub: { color: '#888', fontSize: '0.8rem', fontFamily: 'monospace' },
   viewResultsBtn: { marginLeft: 'auto', background: 'transparent', border: '1px solid #2a2a2a', color: '#888', padding: '0.4rem 0.85rem', borderRadius: '4px', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.8rem' },
 
   // active split view
@@ -638,13 +638,13 @@ const styles = {
   detailContent: { flex: 1, overflowY: 'auto', padding: '1.25rem' },
   statement: { color: '#888', lineHeight: 1.8, fontSize: '0.875rem', margin: '0 0 1rem' },
   limits: { display: 'flex', gap: '1rem' },
-  limit: { color: '#333', fontSize: '0.78rem', fontFamily: 'monospace' },
+  limit: { color: '#888', fontSize: '0.78rem', fontFamily: 'monospace' },
   editorPanel: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   editorTabBar: { display: 'flex', alignItems: 'center', background: '#0f0f0f', borderBottom: '1px solid #1a1a1a', height: '36px', flexShrink: 0 },
   langSelect: { background: 'transparent', border: 'none', color: '#555', fontSize: '0.8rem', fontFamily: 'monospace', cursor: 'pointer', padding: '0 0.75rem', height: '36px', outline: 'none' },
   editorWrapper: { flex: 1, overflow: 'hidden' },
   actionBar: { height: '44px', background: '#0f0f0f', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', padding: '0 1rem', gap: '1rem', flexShrink: 0 },
-  cantSubmit: { color: '#333', fontSize: '0.78rem', fontFamily: 'monospace' },
+  cantSubmit: { color: '#888', fontSize: '0.78rem', fontFamily: 'monospace' },
   submitBtn: { padding: '0.45rem 1.25rem', border: 'none', borderRadius: '4px', fontSize: '0.875rem', fontWeight: 700, fontFamily: 'monospace' },
   tabContent: { flex: 1, overflowY: 'auto', padding: '2rem 3rem', background: '#0a0a0a' },
   frozenBanner: { background: '#1a2a3a', border: '1px solid #2a4a6a', color: '#6ab3e8', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1.5rem', fontSize: '0.875rem', fontFamily: 'monospace' },

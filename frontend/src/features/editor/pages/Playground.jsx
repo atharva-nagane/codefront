@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Editor from '@monaco-editor/react'
 import Navbar from '../../../shared/components/Navbar'
 import ActivityBar from '../../../shared/components/ActivityBar'
@@ -22,6 +22,39 @@ const Playground = () => {
   const [error, setError] = useState('')
   const [executionTime, setExecutionTime] = useState(null)
   const [verdict, setVerdict] = useState(null)
+
+  // sample test cases — loaded from a chosen problem for reference/debugging
+  const [problemList, setProblemList] = useState([])
+  const [selectedProblem, setSelectedProblem] = useState('')
+  const [samples, setSamples] = useState([])
+  const [loadingSamples, setLoadingSamples] = useState(false)
+
+  useEffect(() => {
+    const fetchProblems = async () => {
+      try {
+        const res = await api.get('/problems', { params: { limit: 100 } })
+        setProblemList(res.data.problems)
+      } catch (err) {
+        console.error(err)
+      }
+    }
+    fetchProblems()
+  }, [])
+
+  const handleProblemSelect = async (slug) => {
+    setSelectedProblem(slug)
+    if (!slug) { setSamples([]); return }
+    setLoadingSamples(true)
+    try {
+      const res = await api.get(`/problems/${slug}`)
+      setSamples(res.data.sampleTestCases || [])
+    } catch (err) {
+      console.error(err)
+      setSamples([])
+    } finally {
+      setLoadingSamples(false)
+    }
+  }
 
   const handleLanguageChange = (lang) => {
     setLanguage(lang)
@@ -132,7 +165,47 @@ const Playground = () => {
           <div style={styles.tabBar}>
             <div style={{ ...styles.tab, ...styles.tabActive }}>stdin</div>
             <div style={styles.tabSpacer} />
+            <select
+              value={selectedProblem}
+              onChange={(e) => handleProblemSelect(e.target.value)}
+              style={styles.sampleSelect}
+            >
+              <option value="">load sample from problem...</option>
+              {problemList.map(p => (
+                <option key={p._id} value={p.slug}>{p.name}</option>
+              ))}
+            </select>
           </div>
+
+          {selectedProblem && (
+            <div style={styles.samplesPanel}>
+              {loadingSamples ? (
+                <div style={styles.samplesEmpty}>loading samples...</div>
+              ) : samples.length === 0 ? (
+                <div style={styles.samplesEmpty}>no sample test cases for this problem</div>
+              ) : (
+                samples.map((tc, i) => (
+                  <div key={tc._id || i} style={styles.sampleRow}>
+                    <div style={styles.sampleBlock}>
+                      <span style={styles.sampleLabel}>input {i + 1}</span>
+                      <pre style={styles.sampleCode}>{tc.input}</pre>
+                    </div>
+                    <div style={styles.sampleBlock}>
+                      <span style={styles.sampleLabel}>expected output</span>
+                      <pre style={styles.sampleCode}>{tc.output}</pre>
+                    </div>
+                    <button
+                      style={styles.useSampleBtn}
+                      onClick={() => setInput(tc.input)}
+                    >
+                      use as input →
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
           <div style={styles.inputWrapper}>
             <textarea
               style={styles.ioTextarea}
@@ -197,8 +270,16 @@ const styles = {
   ioTextarea: { width: '100%', height: '100%', background: '#111', border: 'none', color: '#888', padding: '1rem', fontSize: '0.875rem', fontFamily: 'monospace', resize: 'none', outline: 'none', boxSizing: 'border-box' },
   outputWrapper: { flex: 1, overflow: 'auto', background: '#0a0a0a' },
   outputPre: { color: '#00ff87', fontFamily: 'monospace', fontSize: '0.875rem', padding: '1rem', margin: 0, whiteSpace: 'pre-wrap' },
-  execTime: { color: '#444', fontSize: '0.75rem', fontFamily: 'monospace', padding: '0 0.75rem' },
+  execTime: { color: '#888', fontSize: '0.75rem', fontFamily: 'monospace', padding: '0 0.75rem' },
   errorBox: { background: '#ff444411', borderBottom: '1px solid #ff444433', color: '#ff4444', padding: '0.6rem 1rem', fontSize: '0.8rem', fontFamily: 'monospace' },
+  sampleSelect: { background: 'transparent', border: 'none', color: '#888', fontSize: '0.78rem', fontFamily: 'monospace', cursor: 'pointer', padding: '0 0.75rem', height: '36px', outline: 'none', maxWidth: '220px' },
+  samplesPanel: { maxHeight: '220px', overflowY: 'auto', background: '#0a0a0a', borderBottom: '1px solid #1a1a1a', padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' },
+  samplesEmpty: { color: '#888', fontSize: '0.8rem', fontFamily: 'monospace' },
+  sampleRow: { background: '#111', border: '1px solid #1a1a1a', borderRadius: '6px', padding: '0.6rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' },
+  sampleBlock: { display: 'flex', flexDirection: 'column', gap: '0.25rem' },
+  sampleLabel: { color: '#888', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em' },
+  sampleCode: { color: '#00ff87', fontFamily: 'monospace', fontSize: '0.8rem', margin: 0, whiteSpace: 'pre-wrap' },
+  useSampleBtn: { alignSelf: 'flex-start', background: 'transparent', border: '1px solid #2a2a2a', color: '#888', fontSize: '0.72rem', fontFamily: 'monospace', padding: '0.25rem 0.6rem', borderRadius: '4px', cursor: 'pointer' },
 }
 
 export default Playground

@@ -80,7 +80,7 @@ const styles = {
     gap: '0.5rem',
   },
   toggleIcon: { fontSize: '0.6rem', color: '#333' },
-  toggleLabel: { fontSize: '0.75rem', color: '#444', animation: 'fadeIn 0.2s ease' },
+  toggleLabel: { fontSize: '0.75rem', color: '#888', animation: 'fadeIn 0.2s ease' },
   item: {
     height: '44px', display: 'flex',
     alignItems: 'center', textDecoration: 'none',

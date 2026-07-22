@@ -73,7 +73,7 @@ const Contests = () => {
                 {['all', 'upcoming', 'active', 'ended'].map(f => (
                   <button key={f} onClick={() => setFilter(f)} style={{
                     ...styles.filterBtn,
-                    color: filter === f ? (f === 'active' ? '#00ff87' : f === 'upcoming' ? '#ffc107' : '#f0f0f0') : '#444',
+                    color: filter === f ? (f === 'active' ? '#00ff87' : f === 'upcoming' ? '#ffc107' : '#f0f0f0') : '#888',
                     borderColor: filter === f ? (f === 'active' ? '#00ff87' : f === 'upcoming' ? '#ffc107' : '#333') : '#1a1a1a',
                     background: filter === f ? 'rgba(255,255,255,0.05)' : 'transparent',
                   }}>
@@ -173,10 +173,10 @@ const styles = {
   cardDesc: { color: '#555', fontSize: '0.85rem', margin: '0 0 1rem', lineHeight: 1.5 },
   cardMeta: { display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' },
   metaItem: { display: 'flex', gap: '0.75rem', fontFamily: 'monospace', fontSize: '0.8rem' },
-  metaLabel: { color: '#333', width: '40px', flexShrink: 0 },
+  metaLabel: { color: '#888', width: '40px', flexShrink: 0 },
   metaVal: { color: '#666' },
   cardFooter: { display: 'flex', gap: '1.5rem', borderTop: '1px solid #1a1a1a', paddingTop: '0.75rem' },
-  footerItem: { color: '#333', fontSize: '0.78rem', fontFamily: 'monospace' },
+  footerItem: { color: '#888', fontSize: '0.78rem', fontFamily: 'monospace' },
   empty: { color: '#2a2a2a', fontFamily: 'monospace', fontSize: '0.875rem' },
 }
 

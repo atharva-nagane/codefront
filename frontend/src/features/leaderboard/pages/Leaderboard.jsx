@@ -27,7 +27,7 @@ const Leaderboard = () => {
     if (i === 0) return '#ffc107'
     if (i === 1) return '#888'
     if (i === 2) return '#cd7f32'
-    return '#333'
+    return '#888'
   }
 
   const statusItems = [

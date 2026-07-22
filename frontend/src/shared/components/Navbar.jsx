@@ -158,7 +158,7 @@ const styles = {
   },
   dropdownHeader: { padding: '0.85rem 1rem' },
   dropdownName: { color: '#f0f0f0', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.2rem' },
-  dropdownEmail: { color: '#444', fontSize: '0.78rem', fontFamily: 'monospace' },
+  dropdownEmail: { color: '#888', fontSize: '0.78rem', fontFamily: 'monospace' },
   dropdownDivider: { height: '1px', background: '#1a1a1a' },
   dropdownItem: { display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.65rem 1rem', fontSize: '0.85rem', color: '#888', cursor: 'pointer', transition: 'background 0.1s' },
   dropdownIcon: { fontSize: '0.8rem', width: '16px', textAlign: 'center' },

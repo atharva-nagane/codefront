@@ -280,7 +280,7 @@ const styles = {
   formGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1.5rem' },
   tcGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1rem' },
   field: { marginBottom: '1rem' },
-  label: { display: 'block', color: '#333', marginBottom: '0.35rem', fontSize: '0.72rem', fontFamily: 'monospace', letterSpacing: '0.05em' },
+  label: { display: 'block', color: '#888', marginBottom: '0.35rem', fontSize: '0.72rem', fontFamily: 'monospace', letterSpacing: '0.05em' },
   input: { width: '100%', padding: '0.6rem 0.75rem', background: '#0a0a0a', border: '1px solid #2a2a2a', borderRadius: '4px', color: '#f0f0f0', fontSize: '0.875rem', boxSizing: 'border-box', fontFamily: 'inherit', outline: 'none' },
   btn: { width: '100%', padding: '0.7rem', background: '#00ff87', color: '#0a0a0a', border: 'none', borderRadius: '4px', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', marginTop: '0.5rem', fontFamily: 'monospace' },
   tcCard: { background: '#0a0a0a', borderRadius: '6px', padding: '1rem', marginBottom: '1rem', border: '1px solid #1a1a1a' },
