@@ -1,46 +1,66 @@
-const Problem = require('../problems/problem.model');
+const MCQ = require('./mcq.model');
 const Battle = require('./battle.model');
-const User = require('../auth/auth.model');
 
-const PROBLEMS_PER_BATTLE = 20;
+const QUESTIONS_PER_BATTLE = 20;
+// intra-battle difficulty progression: ramp from Easy to Hard within one battle
+const BAND_SIZES = { Easy: 8, Medium: 8, Hard: 4 };
 
-const getDifficultyForUser = async (userId) => {
-  const battleCount = await Battle.countDocuments({
-    $or: [{ 'playerA.user': userId }, { 'playerB.user': userId }],
-    status: 'finished',
-  });
-
-  if (battleCount < 15) return 'Easy';
-  if (battleCount < 30) return 'Medium';
-  return 'Hard';
+const shuffle = (arr) => {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 };
 
-const selectProblemsForBattle = async (userAId, userBId) => {
-  // use the more experienced player's difficulty
-  const diffA = await getDifficultyForUser(userAId);
-  const diffB = await getDifficultyForUser(userBId);
-
-  const difficultyOrder = { Easy: 1, Medium: 2, Hard: 3 };
-  const difficulty = difficultyOrder[diffA] >= difficultyOrder[diffB] ? diffA : diffB;
-
-  const problems = await Problem.aggregate([
-    { $match: { difficulty } },
-    { $sample: { size: PROBLEMS_PER_BATTLE } },
+// pulls `count` MCQs of a given difficulty, shuffled, falling back to any
+// difficulty if the pool is too small (e.g. freshly seeded DB).
+const pickMCQs = async (difficulty, count, excludeIds = []) => {
+  const pool = await MCQ.aggregate([
+    { $match: { difficulty, _id: { $nin: excludeIds } } },
+    { $sample: { size: count } },
   ]);
 
-  if (problems.length < PROBLEMS_PER_BATTLE) {
-    // fallback — get any problems if not enough of this difficulty
-    const fallback = await Problem.aggregate([
-      { $sample: { size: PROBLEMS_PER_BATTLE } },
-    ]);
-    return fallback;
+  if (pool.length >= count) return shuffle(pool);
+
+  const fallback = await MCQ.aggregate([
+    { $match: { _id: { $nin: excludeIds } } },
+    { $sample: { size: count } },
+  ]);
+  return shuffle(fallback);
+};
+
+// builds a full question sequence for one battle: Easy band, then Medium,
+// then Hard, shuffled within each band so players don't see identical order.
+const selectQuestionsForBattle = async (count = QUESTIONS_PER_BATTLE) => {
+  const usedIds = [];
+  const bands = [];
+
+  // scale band sizes proportionally if count != QUESTIONS_PER_BATTLE
+  const scale = count / QUESTIONS_PER_BATTLE;
+  const sizes = {
+    Easy: Math.max(1, Math.round(BAND_SIZES.Easy * scale)),
+    Medium: Math.max(1, Math.round(BAND_SIZES.Medium * scale)),
+    Hard: Math.max(1, Math.round(BAND_SIZES.Hard * scale)),
+  };
+
+  for (const difficulty of ['Easy', 'Medium', 'Hard']) {
+    const picked = await pickMCQs(difficulty, sizes[difficulty], usedIds);
+    picked.forEach(q => usedIds.push(q._id));
+    bands.push(...picked);
   }
 
-  return problems;
+  return bands;
+};
+
+const pickExtraQuestion = async (excludeIds) => {
+  const [q] = await pickMCQs('Hard', 1, excludeIds);
+  return q;
 };
 
 const createBattle = async (playerA, playerB, mode) => {
-  const problems = await selectProblemsForBattle(playerA.userId, playerB.userId);
+  const questions = await selectQuestionsForBattle(QUESTIONS_PER_BATTLE);
 
   const battle = await Battle.create({
     playerA: {
@@ -51,13 +71,13 @@ const createBattle = async (playerA, playerB, mode) => {
       user: playerB.userId,
       username: playerB.username,
     },
-    problems: problems.map(p => p._id),
+    questions: questions.map(q => q._id),
     mode,
     status: 'active',
     startTime: new Date(),
   });
 
-  return { battle, problems };
+  return { battle, questions };
 };
 
 const getModeTimeLimit = (mode) => {
@@ -70,4 +90,10 @@ const getModeTimeLimit = (mode) => {
   return limits[mode];
 };
 
-module.exports = { createBattle, getDifficultyForUser, getModeTimeLimit };
+module.exports = {
+  createBattle,
+  getModeTimeLimit,
+  selectQuestionsForBattle,
+  pickExtraQuestion,
+  QUESTIONS_PER_BATTLE,
+};

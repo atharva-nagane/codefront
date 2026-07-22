@@ -118,7 +118,7 @@ const styles = {
   core: { fontSize: '1.5rem', animation: 'pulse 2s ease infinite' },
   searchText: { color: '#888', fontSize: '1rem', fontFamily: 'monospace' },
   modeTag: { color: '#a78bfa', fontSize: '0.875rem', fontFamily: 'monospace', background: '#a78bfa11', border: '1px solid #a78bfa33', padding: '0.25rem 0.75rem', borderRadius: '4px' },
-  waitText: { color: '#333', fontSize: '0.8rem', fontFamily: 'monospace' },
+  waitText: { color: '#888', fontSize: '0.8rem', fontFamily: 'monospace' },
   leaveBtn: { background: 'transparent', border: '1px solid #2a2a2a', color: '#555', padding: '0.5rem 1.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', fontFamily: 'monospace', marginTop: '1rem' },
 }
 

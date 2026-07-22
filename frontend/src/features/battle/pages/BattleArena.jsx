@@ -1,15 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
-import Editor from '@monaco-editor/react'
 import Navbar from '../../../shared/components/Navbar'
 import IDELayout from '../../../shared/components/IDELayout'
 import { getBattleSocket } from '../battleSocket'
 
-const defaultCode = {
-  python: `# your solution here\n`,
-  cpp: `#include <iostream>\nusing namespace std;\nint main() {\n    // your solution here\n    return 0;\n}`,
-  java: `import java.util.Scanner;\npublic class Main {\n    public static void main(String[] args) {\n        // your solution here\n    }\n}`,
-}
+const difficultyColor = { Easy: '#00ff87', Medium: '#ffc107', Hard: '#ff4444' }
 
 const BattleArena = () => {
   const { battleId } = useParams()
@@ -17,12 +12,11 @@ const BattleArena = () => {
   const navigate = useNavigate()
   const data = location.state
 
-  const [problems, setProblems] = useState(data?.problems || [])
+  const [questions, setQuestions] = useState(data?.questions || [])
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [language, setLanguage] = useState('python')
-  const [code, setCode] = useState(defaultCode['python'])
+  const [selected, setSelected] = useState(null)
   const [submitting, setSubmitting] = useState(false)
-  const [mode, setMode] = useState(data?.mode || '10min')
+  const [mode] = useState(data?.mode || '10min')
   const [timeLeft, setTimeLeft] = useState(null)
   const [myScore, setMyScore] = useState(0)
   const [myWrongs, setMyWrongs] = useState(0)
@@ -35,7 +29,7 @@ const BattleArena = () => {
   const [suddenDeath, setSuddenDeath] = useState(false)
   const timerRef = useRef(null)
 
-  const currentProblem = problems[currentIndex]
+  const currentQuestion = questions[currentIndex]
 
   useEffect(() => {
     const socket = getBattleSocket()
@@ -64,9 +58,12 @@ const BattleArena = () => {
       setMyWrongs(result.wrongCount)
       setMyLocked(result.locked)
 
-      if (result.correct || result.verdict !== 'locked') {
-        setCurrentIndex(result.nextIndex)
-        setCode(defaultCode[language])
+      if (result.verdict !== 'locked') {
+        setTimeout(() => {
+          setCurrentIndex(result.nextIndex)
+          setSelected(null)
+          setLastResult(null)
+        }, 900)
       }
     })
 
@@ -76,10 +73,9 @@ const BattleArena = () => {
       setOpponentLocked(update.locked)
     })
 
-    socket.on('battle:sudden_death', ({ problem }) => {
+    socket.on('battle:sudden_death', ({ question }) => {
       setSuddenDeath(true)
-      setProblems(prev => [...prev, problem])
-      setCurrentIndex(prev => prev)
+      setQuestions(prev => [...prev, question])
     })
 
     socket.on('battle:ended', (result) => {
@@ -96,18 +92,18 @@ const BattleArena = () => {
     }
   }, [battleId, navigate, data])
 
-  const handleSubmit = () => {
-    if (!currentProblem || myLocked || submitting) return
+  // select-to-submit — snappier for a speed battle than a separate confirm step
+  const handleSelect = (optionIndex) => {
+    if (!currentQuestion || myLocked || submitting || lastResult) return
     const socket = getBattleSocket()
     if (!socket) return
 
+    setSelected(optionIndex)
     setSubmitting(true)
-    setLastResult(null)
     socket.emit('battle:submit', {
       battleId,
-      problemId: currentProblem._id,
-      code,
-      language,
+      questionId: currentQuestion._id,
+      selectedIndex: optionIndex,
     })
   }
 
@@ -122,22 +118,21 @@ const BattleArena = () => {
 
   return (
     <IDELayout statusItems={[
-      { position: 'left', label: `problem ${currentIndex + 1}/${problems.length}`, icon: '◇' },
+      { position: 'left', label: `question ${currentIndex + 1}/${questions.length}`, icon: '◇' },
       { position: 'left', label: `score: ${myScore}`, color: '#00ff87' },
       { position: 'right', label: `${opponentName}: ${opponentScore}`, color: '#a78bfa' },
       { position: 'right', label: formatTime(timeLeft), color: timeColor },
     ]}>
       <Navbar />
       <div style={styles.workspace}>
-
-        {/* Left — problem */}
-        <div style={styles.leftPanel}>
+        <div style={styles.centerPanel}>
           <div style={styles.tabBar}>
             <div style={{ ...styles.tab, ...styles.tabActive }}>
-              {suddenDeath ? '⚡ sudden_death' : `◇ problem_${currentIndex + 1}`}
+              {suddenDeath ? '⚡ sudden_death' : `◇ question_${currentIndex + 1}`}
             </div>
             <div style={styles.tabSpacer} />
             {suddenDeath && <span style={styles.sdBadge}>SUDDEN DEATH</span>}
+            <span style={{ ...styles.timerTag, color: timeColor }}>{formatTime(timeLeft)}</span>
           </div>
 
           {/* Opponent status bar */}
@@ -165,15 +160,46 @@ const BattleArena = () => {
                 <div style={styles.lockedSub}>Waiting for battle to end...</div>
                 <div style={styles.lockedScore}>Your score: {myScore}</div>
               </div>
-            ) : currentProblem ? (
-              <div style={styles.problemContent}>
+            ) : currentQuestion ? (
+              <div style={styles.questionContent}>
                 {suddenDeath && (
                   <div style={styles.sdBanner}>
-                    ⚡ SUDDEN DEATH — First to solve wins!
+                    ⚡ SUDDEN DEATH — First to answer correctly wins!
                   </div>
                 )}
-                <h2 style={styles.problemTitle}>{currentProblem.name}</h2>
-                <p style={styles.statement}>{currentProblem.statement}</p>
+                <div style={{ ...styles.difficultyTag, color: difficultyColor[currentQuestion.difficulty], borderColor: difficultyColor[currentQuestion.difficulty] + '44' }}>
+                  {currentQuestion.difficulty}
+                </div>
+                <h2 style={styles.questionTitle}>{currentQuestion.question}</h2>
+
+                <div style={styles.options}>
+                  {currentQuestion.options.map((opt, i) => {
+                    let optionStyle = { ...styles.option }
+                    if (lastResult) {
+                      if (i === lastResult.correctIndex) {
+                        optionStyle = { ...optionStyle, ...styles.optionCorrect }
+                      } else if (i === selected) {
+                        optionStyle = { ...optionStyle, ...styles.optionWrong }
+                      } else {
+                        optionStyle = { ...optionStyle, opacity: 0.4 }
+                      }
+                    } else if (selected === i) {
+                      optionStyle = { ...optionStyle, ...styles.optionSelected }
+                    }
+
+                    return (
+                      <button
+                        key={i}
+                        style={optionStyle}
+                        onClick={() => handleSelect(i)}
+                        disabled={submitting || !!lastResult}
+                      >
+                        <span style={styles.optionLetter}>{String.fromCharCode(65 + i)}</span>
+                        <span>{opt}</span>
+                      </button>
+                    )
+                  })}
+                </div>
 
                 {lastResult && (
                   <div style={{
@@ -182,79 +208,16 @@ const BattleArena = () => {
                     borderColor: lastResult.correct ? '#00ff8744' : '#ff444444',
                     color: lastResult.correct ? '#00ff87' : '#ff4444',
                   }}>
-                    {lastResult.correct ? '✓ Correct — next problem loaded' : `✗ ${lastResult.verdict} — skipped (${myWrongs}/3 wrong)`}
+                    {lastResult.correct ? '✓ Correct!' : `✗ Wrong — correct answer was "${currentQuestion.options[lastResult.correctIndex]}"`}
                   </div>
                 )}
               </div>
             ) : (
               <div style={styles.doneScreen}>
-                <div style={styles.doneText}>All problems solved!</div>
+                <div style={styles.doneText}>All questions answered!</div>
                 <div style={styles.doneScore}>Final score: {myScore}</div>
               </div>
             )}
-          </div>
-        </div>
-
-        <div style={styles.resizeHandle} />
-
-        {/* Right — editor */}
-        <div style={styles.rightPanel}>
-          <div style={styles.tabBar}>
-            <div style={{ ...styles.tab, ...styles.tabActive }}>
-              ⚡ solution.{language === 'cpp' ? 'cpp' : language === 'java' ? 'java' : 'py'}
-            </div>
-            <div style={styles.tabSpacer} />
-            <select
-              value={language}
-              onChange={e => { setLanguage(e.target.value); setCode(defaultCode[e.target.value]) }}
-              style={styles.langSelect}
-            >
-              <option value="python">Python</option>
-              <option value="cpp">C++</option>
-              <option value="java">Java</option>
-            </select>
-          </div>
-
-          <div style={styles.editorWrapper}>
-            <Editor
-              height="100%"
-              language={language}
-              value={code}
-              onChange={val => setCode(val)}
-              theme="vs-dark"
-              options={{
-                fontSize: 14,
-                fontFamily: "'JetBrains Mono', monospace",
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-                padding: { top: 12 },
-              }}
-            />
-          </div>
-
-          <div style={styles.actionBar}>
-            <div style={styles.myStats}>
-              <span style={{ color: '#00ff87', fontFamily: 'monospace', fontSize: '0.8rem' }}>✓ {myScore}</span>
-              <span style={{ color: '#ff4444', fontFamily: 'monospace', fontSize: '0.8rem', marginLeft: '0.75rem' }}>✗ {myWrongs}/3</span>
-            </div>
-            <div style={styles.timer}>
-              <span style={{ color: timeColor, fontFamily: 'monospace', fontWeight: 700, fontSize: '1rem' }}>
-                {formatTime(timeLeft)}
-              </span>
-            </div>
-            <button
-              onClick={handleSubmit}
-              disabled={submitting || myLocked || !currentProblem}
-              style={{
-                ...styles.submitBtn,
-                background: myLocked ? '#1a1a1a' : submitting ? '#1a1a1a' : '#00ff87',
-                color: myLocked || submitting ? '#333' : '#0a0a0a',
-                cursor: myLocked || submitting ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {submitting ? '◌ Running...' : myLocked ? '🔒 Locked' : '▶ Submit'}
-            </button>
           </div>
         </div>
       </div>
@@ -267,14 +230,13 @@ const BattleArena = () => {
 }
 
 const styles = {
-  workspace: { display: 'flex', flex: 1, overflow: 'hidden' },
-  leftPanel: { width: '45%', display: 'flex', flexDirection: 'column', borderRight: '1px solid #1a1a1a', overflow: 'hidden' },
-  rightPanel: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
-  resizeHandle: { width: '4px', background: '#1a1a1a', flexShrink: 0 },
+  workspace: { display: 'flex', flex: 1, overflow: 'hidden', justifyContent: 'center' },
+  centerPanel: { width: '100%', maxWidth: '720px', display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   tabBar: { display: 'flex', alignItems: 'center', background: '#0f0f0f', borderBottom: '1px solid #1a1a1a', height: '36px', flexShrink: 0 },
   tab: { display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0 1rem', height: '36px', color: '#555', fontSize: '0.8rem', fontFamily: 'monospace', borderRight: '1px solid #1a1a1a', whiteSpace: 'nowrap' },
   tabActive: { color: '#f0f0f0', background: '#111', borderTop: '1px solid #00ff87' },
   tabSpacer: { flex: 1 },
+  timerTag: { fontFamily: 'monospace', fontWeight: 700, fontSize: '0.9rem', padding: '0 1rem' },
   sdBadge: { background: '#ffc10722', color: '#ffc107', fontSize: '0.7rem', fontWeight: 700, padding: '0.1rem 0.6rem', borderRadius: '3px', margin: '0 0.5rem', fontFamily: 'monospace', border: '1px solid #ffc10744' },
   opponentBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 1rem', background: '#0f0f0f', borderBottom: '1px solid #1a1a1a' },
   opponentLeft: { display: 'flex', alignItems: 'center', gap: '0.5rem' },
@@ -283,25 +245,25 @@ const styles = {
   opponentName: { color: '#a78bfa', fontSize: '0.85rem', fontFamily: 'monospace' },
   lockedBadge: { background: '#ff444422', color: '#ff4444', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '3px', border: '1px solid #ff444444' },
   panelContent: { flex: 1, overflowY: 'auto', background: '#111' },
-  problemContent: { padding: '1.5rem' },
-  problemTitle: { color: '#f0f0f0', fontSize: '1.2rem', fontWeight: 700, margin: '0 0 1rem' },
-  statement: { color: '#888', lineHeight: 1.8, fontSize: '0.9rem' },
-  resultBanner: { marginTop: '1rem', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid', fontSize: '0.85rem', fontFamily: 'monospace' },
+  questionContent: { padding: '2rem' },
+  difficultyTag: { display: 'inline-block', fontSize: '0.7rem', fontWeight: 700, fontFamily: 'monospace', border: '1px solid', borderRadius: '3px', padding: '0.15rem 0.5rem', marginBottom: '1rem', textTransform: 'uppercase' },
+  questionTitle: { color: '#f0f0f0', fontSize: '1.25rem', fontWeight: 700, margin: '0 0 1.5rem', lineHeight: 1.5 },
+  options: { display: 'flex', flexDirection: 'column', gap: '0.75rem' },
+  option: { display: 'flex', alignItems: 'center', gap: '0.75rem', textAlign: 'left', background: '#0a0a0a', border: '1px solid #1a1a1a', borderRadius: '8px', padding: '0.9rem 1.1rem', color: '#ccc', fontSize: '0.95rem', fontFamily: 'inherit', cursor: 'pointer', transition: 'all 0.1s' },
+  optionSelected: { borderColor: '#00ff87', background: '#00ff8711' },
+  optionCorrect: { borderColor: '#00ff87', background: '#00ff8722', color: '#00ff87' },
+  optionWrong: { borderColor: '#ff4444', background: '#ff444422', color: '#ff4444' },
+  optionLetter: { width: '24px', height: '24px', borderRadius: '50%', background: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontFamily: 'monospace', flexShrink: 0 },
+  resultBanner: { marginTop: '1.5rem', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid', fontSize: '0.85rem', fontFamily: 'monospace' },
   lockedScreen: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '1rem', padding: '2rem' },
   lockedIcon: { fontSize: '3rem' },
   lockedText: { color: '#ff4444', fontSize: '1rem', fontFamily: 'monospace' },
-  lockedSub: { color: '#444', fontSize: '0.85rem' },
+  lockedSub: { color: '#888', fontSize: '0.85rem' },
   lockedScore: { color: '#00ff87', fontSize: '1.2rem', fontFamily: 'monospace', fontWeight: 700 },
   doneScreen: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '1rem' },
   doneText: { color: '#00ff87', fontSize: '1.1rem', fontFamily: 'monospace' },
   doneScore: { color: '#f0f0f0', fontSize: '1.5rem', fontFamily: 'monospace', fontWeight: 700 },
   sdBanner: { background: '#ffc10711', border: '1px solid #ffc10744', color: '#ffc107', padding: '0.75rem 1rem', borderRadius: '6px', fontSize: '0.875rem', fontFamily: 'monospace', fontWeight: 700, marginBottom: '1rem' },
-  editorWrapper: { flex: 1, overflow: 'hidden' },
-  langSelect: { background: 'transparent', border: 'none', color: '#555', fontSize: '0.8rem', fontFamily: 'monospace', cursor: 'pointer', padding: '0 0.75rem', height: '36px', outline: 'none' },
-  actionBar: { height: '44px', background: '#0f0f0f', borderTop: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', padding: '0 1rem', gap: '1rem', flexShrink: 0 },
-  myStats: { display: 'flex', alignItems: 'center' },
-  timer: { flex: 1, display: 'flex', justifyContent: 'center' },
-  submitBtn: { padding: '0.45rem 1.25rem', border: 'none', borderRadius: '4px', fontSize: '0.875rem', fontWeight: 700, fontFamily: 'monospace' },
 }
 
 export default BattleArena

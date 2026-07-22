@@ -1,9 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../auth/auth.model');
 const Battle = require('./battle.model');
-const TestCase = require('../testcases/testcase.model');
-const { runCode } = require('../execution/dockerRunner');
-const { createBattle, getModeTimeLimit } = require('./battle.service');
+const { createBattle, getModeTimeLimit, pickExtraQuestion } = require('./battle.service');
 const redis = require('../../config/redis');
 const {
   joinQueue, findMatch, leaveQueue,
@@ -14,6 +12,17 @@ const {
 const logger = require('../../shared/utils/logger');
 
 const MAX_WRONGS = 3;
+
+// strips answer-revealing fields before a question set is sent to clients —
+// the full data (with correctIndex/explanation) stays server-side in the
+// Redis session for validation.
+const sanitizeQuestions = (questions) => questions.map(q => ({
+  _id: q._id.toString(),
+  question: q.question,
+  options: q.options,
+  difficulty: q.difficulty,
+  topic: q.topic,
+}));
 
 const authenticateSocket = async (socket) => {
   try {
@@ -26,6 +35,89 @@ const authenticateSocket = async (socket) => {
   } catch {
     return null;
   }
+};
+
+// P1.6 — persist a lightweight checkpoint of battle state to MongoDB so a
+// Redis restart mid-battle doesn't lose scores/progress entirely. MCQ battles
+// only need to checkpoint scores/index/wrongCounts (no code state), so this
+// write is cheap and safe to do on every submission.
+const checkpointBattle = async (battleId, session) => {
+  try {
+    await Battle.findByIdAndUpdate(battleId, {
+      'playerA.score': session.playerA.score,
+      'playerA.wrongCount': session.playerA.wrongCount,
+      'playerA.currentIndex': session.playerA.currentIndex,
+      'playerA.locked': session.playerA.locked,
+      'playerA.solvedQuestions': session.playerA.solvedQuestions,
+      'playerA.reviewQuestions': session.playerA.reviewQuestions,
+      'playerB.score': session.playerB.score,
+      'playerB.wrongCount': session.playerB.wrongCount,
+      'playerB.currentIndex': session.playerB.currentIndex,
+      'playerB.locked': session.playerB.locked,
+      'playerB.solvedQuestions': session.playerB.solvedQuestions,
+      'playerB.reviewQuestions': session.playerB.reviewQuestions,
+      status: session.status,
+      lastCheckpointAt: new Date(),
+    });
+  } catch (err) {
+    logger.error(`Battle checkpoint failed for ${battleId}: ${err.message}`);
+  }
+};
+
+// recovery path — if Redis lost the session (restart/eviction) but Mongo
+// still shows the battle as active, finish it from the last checkpoint
+// rather than leaving it stuck forever.
+const recoverFromCheckpoint = async (io, battleId) => {
+  const battle = await Battle.findById(battleId);
+  if (!battle || battle.status === 'finished') return null;
+
+  let winner = null;
+  let isDraw = false;
+  if (battle.playerA.score > battle.playerB.score) winner = battle.playerA.user;
+  else if (battle.playerB.score > battle.playerA.score) winner = battle.playerB.user;
+  else isDraw = true;
+
+  battle.status = 'finished';
+  battle.winner = winner;
+  battle.isDraw = isDraw;
+  battle.endTime = new Date();
+  await battle.save();
+
+  logger.warn(`Battle ${battleId} recovered from checkpoint after Redis session loss`);
+
+  const resultPayload = {
+    winner: winner
+      ? (winner.toString() === battle.playerA.user.toString() ? battle.playerA.username : battle.playerB.username)
+      : null,
+    isDraw,
+    playerA: { username: battle.playerA.username, score: battle.playerA.score, wrongCount: battle.playerA.wrongCount },
+    playerB: { username: battle.playerB.username, score: battle.playerB.score, wrongCount: battle.playerB.wrongCount },
+    reason: 'redis_recovery',
+  };
+
+  io.to(battleId).emit('battle:ended', resultPayload);
+  return resultPayload;
+};
+
+const buildReview = async (player) => {
+  const MCQ = require('./mcq.model');
+  if (!player.reviewQuestions?.length) return [];
+
+  const ids = player.reviewQuestions.map(r => r.questionId);
+  const mcqs = await MCQ.find({ _id: { $in: ids } });
+  const mcqMap = new Map(mcqs.map(m => [m._id.toString(), m]));
+
+  return player.reviewQuestions.map(r => {
+    const mcq = mcqMap.get(r.questionId);
+    if (!mcq) return null;
+    return {
+      question: mcq.question,
+      options: mcq.options,
+      correctIndex: mcq.correctIndex,
+      explanation: mcq.explanation,
+      selectedIndex: r.selectedIndex,
+    };
+  }).filter(Boolean);
 };
 
 const endBattle = async (io, battleId, session, reason) => {
@@ -47,15 +139,22 @@ const endBattle = async (io, battleId, session, reason) => {
     endTime: new Date(),
     'playerA.score': playerA.score,
     'playerA.wrongCount': playerA.wrongCount,
+    'playerA.currentIndex': playerA.currentIndex,
     'playerA.locked': playerA.locked,
-    'playerA.solvedProblems': playerA.solvedProblems,
-    'playerA.reviewProblems': playerA.reviewProblems,
+    'playerA.solvedQuestions': playerA.solvedQuestions,
+    'playerA.reviewQuestions': playerA.reviewQuestions,
     'playerB.score': playerB.score,
     'playerB.wrongCount': playerB.wrongCount,
+    'playerB.currentIndex': playerB.currentIndex,
     'playerB.locked': playerB.locked,
-    'playerB.solvedProblems': playerB.solvedProblems,
-    'playerB.reviewProblems': playerB.reviewProblems,
+    'playerB.solvedQuestions': playerB.solvedQuestions,
+    'playerB.reviewQuestions': playerB.reviewQuestions,
   });
+
+  const [reviewA, reviewB] = await Promise.all([
+    buildReview(playerA),
+    buildReview(playerB),
+  ]);
 
   const resultPayload = {
     winner: winner
@@ -66,16 +165,26 @@ const endBattle = async (io, battleId, session, reason) => {
       username: playerA.username,
       score: playerA.score,
       wrongCount: playerA.wrongCount,
+      review: reviewA,
     },
     playerB: {
       username: playerB.username,
       score: playerB.score,
       wrongCount: playerB.wrongCount,
+      review: reviewB,
     },
     reason,
   };
 
-  io.to(battleId).emit('battle:ended', resultPayload);
+  // each player only needs their own review — send targeted payloads
+  io.to(playerA.socketId).emit('battle:ended', {
+    ...resultPayload,
+    myReview: reviewA,
+  });
+  io.to(playerB.socketId).emit('battle:ended', {
+    ...resultPayload,
+    myReview: reviewB,
+  });
 
   await deleteSession(battleId);
   await clearUserBattle(playerA.userId);
@@ -83,7 +192,8 @@ const endBattle = async (io, battleId, session, reason) => {
 };
 
 const setupBattleSocket = (io) => {
-  // per-user submit cooldown map
+  // per-user submit cooldown map — still useful to prevent spam-clicking
+  // through MCQ options even though validation itself is instant.
   const submitCooldowns = new Map();
 
   io.use(async (socket, next) => {
@@ -137,7 +247,7 @@ const setupBattleSocket = (io) => {
             return false;
           }
 
-          const { battle, problems } = await createBattle(
+          const { battle, questions } = await createBattle(
             { userId: playerA.userId, username: playerA.username },
             { userId: playerB.userId, username: playerB.username },
             mode
@@ -150,28 +260,29 @@ const setupBattleSocket = (io) => {
             mode,
             status: 'active',
             startTime: Date.now(),
-            problems: problems.map(p => ({
-              _id: p._id.toString(),
-              name: p.name,
-              slug: p.slug,
-              difficulty: p.difficulty,
-              statement: p.statement,
-              timeLimit: p.timeLimit,
-              memoryLimit: p.memoryLimit,
+            // full data (with correctIndex/explanation) kept server-side only
+            questions: questions.map(q => ({
+              _id: q._id.toString(),
+              question: q.question,
+              options: q.options,
+              difficulty: q.difficulty,
+              topic: q.topic,
+              correctIndex: q.correctIndex,
+              explanation: q.explanation,
             })),
             playerA: {
               userId: playerA.userId,
               username: playerA.username,
               socketId: playerA.socketId,
               score: 0, wrongCount: 0, currentIndex: 0,
-              locked: false, solvedProblems: [], reviewProblems: [],
+              locked: false, solvedQuestions: [], reviewQuestions: [],
             },
             playerB: {
               userId: playerB.userId,
               username: playerB.username,
               socketId: playerB.socketId,
               score: 0, wrongCount: 0, currentIndex: 0,
-              locked: false, solvedProblems: [], reviewProblems: [],
+              locked: false, solvedQuestions: [], reviewQuestions: [],
             },
           };
 
@@ -186,7 +297,7 @@ const setupBattleSocket = (io) => {
 
           const matchPayload = {
             battleId, mode, timeLimit,
-            problems: session.problems,
+            questions: sanitizeQuestions(questions),
           };
 
           socketA.emit('battle:matched', {
@@ -258,11 +369,12 @@ const setupBattleSocket = (io) => {
     });
 
     // ── SUBMIT IN BATTLE ────────────────────────────────────────────────────
-    socket.on('battle:submit', async ({ battleId, problemId, code, language }) => {
+    // MCQ battles validate synchronously in-memory — no Docker, no queue.
+    socket.on('battle:submit', async ({ battleId, questionId, selectedIndex }) => {
       try {
         const userId = socket.user._id.toString();
 
-        // rate limit — 1 submission per 3 seconds per user
+        // rate limit — 1 submission per 3 seconds per user (prevents spam-clicking)
         const now = Date.now();
         const lastSubmit = submitCooldowns.get(userId) || 0;
         if (now - lastSubmit < 3000) {
@@ -274,7 +386,11 @@ const setupBattleSocket = (io) => {
         submitCooldowns.set(userId, now);
 
         const session = await getSession(battleId);
-        if (!session) return socket.emit('battle:error', { message: 'Battle not found' });
+        if (!session) {
+          // Redis lost the session — recover from the last MongoDB checkpoint
+          await recoverFromCheckpoint(io, battleId);
+          return socket.emit('battle:error', { message: 'Battle not found' });
+        }
 
         const isPlayerA = session.playerA.userId === userId;
         const playerKey = isPlayerA ? 'playerA' : 'playerB';
@@ -289,34 +405,18 @@ const setupBattleSocket = (io) => {
           return;
         }
 
-        const testCases = await TestCase.find({ problem: problemId });
+        const mcq = session.questions.find(q => q._id === questionId);
+        if (!mcq) return socket.emit('battle:error', { message: 'Question not found' });
 
-        const results = await Promise.all(
-          testCases.map(tc =>
-            runCode(
-              `battle_${battleId}_${userId}_${Date.now()}`,
-              code, language, tc.input
-            )
-          )
-        );
-
-        let verdict = 'Accepted';
-        for (let i = 0; i < results.length; i++) {
-          if (results[i].verdict) { verdict = results[i].verdict; break; }
-          if (results[i].output.trim() !== testCases[i].output.trim()) {
-            verdict = 'Wrong Answer'; break;
-          }
-        }
-
-        const correct = verdict === 'Accepted';
+        const correct = selectedIndex === mcq.correctIndex;
 
         if (correct) {
           session[playerKey].score += 1;
-          session[playerKey].solvedProblems.push(problemId);
+          session[playerKey].solvedQuestions.push(questionId);
           session[playerKey].currentIndex += 1;
         } else {
           session[playerKey].wrongCount += 1;
-          session[playerKey].reviewProblems.push(problemId);
+          session[playerKey].reviewQuestions.push({ questionId, selectedIndex });
           session[playerKey].currentIndex += 1;
 
           if (session[playerKey].wrongCount >= MAX_WRONGS) {
@@ -325,10 +425,12 @@ const setupBattleSocket = (io) => {
         }
 
         await updateSession(battleId, session);
+        await checkpointBattle(battleId, session);
 
         socket.emit('battle:submit_result', {
-          verdict,
           correct,
+          correctIndex: mcq.correctIndex,
+          explanation: mcq.explanation,
           score: session[playerKey].score,
           wrongCount: session[playerKey].wrongCount,
           locked: session[playerKey].locked,
@@ -347,21 +449,33 @@ const setupBattleSocket = (io) => {
           return;
         }
 
-        // check if both finished all problems
-        const totalProblems = session.problems.length;
+        // check if both finished all questions
+        const totalQuestions = session.questions.length;
         if (
-          session.playerA.currentIndex >= totalProblems &&
-          session.playerB.currentIndex >= totalProblems
+          session.playerA.currentIndex >= totalQuestions &&
+          session.playerB.currentIndex >= totalQuestions
         ) {
           if (session.playerA.score === session.playerB.score) {
             session.status = 'sudden_death';
+            const extra = await pickExtraQuestion(session.questions.map(q => q._id));
+            if (extra) {
+              session.questions.push({
+                _id: extra._id.toString(),
+                question: extra.question,
+                options: extra.options,
+                difficulty: extra.difficulty,
+                topic: extra.topic,
+                correctIndex: extra.correctIndex,
+                explanation: extra.explanation,
+              });
+            }
             await updateSession(battleId, session);
-            const suddenDeathProblem = session.problems[0];
+            const suddenDeathQuestion = session.questions[session.questions.length - 1];
             io.to(battleId).emit('battle:sudden_death', {
-              problem: suddenDeathProblem,
+              question: sanitizeQuestions([suddenDeathQuestion])[0],
             });
           } else {
-            await endBattle(io, battleId, session, 'all_problems_done');
+            await endBattle(io, battleId, session, 'all_questions_done');
           }
         }
 

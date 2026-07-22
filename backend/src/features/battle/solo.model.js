@@ -1,13 +1,19 @@
 const mongoose = require('mongoose');
 
+const reviewEntrySchema = new mongoose.Schema({
+  question: { type: mongoose.Schema.Types.ObjectId, ref: 'MCQ' },
+  selectedIndex: { type: Number },
+}, { _id: false });
+
 const soloBattleSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   mode: { type: String, enum: ['5min', '10min', '30min', 'survival'], required: true },
   score: { type: Number, default: 0 },
   wrongCount: { type: Number, default: 0 },
-  problems: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Problem' }],
-  solvedProblems: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Problem' }],
-  reviewProblems: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Problem' }],
+  currentIndex: { type: Number, default: 0 },
+  questions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'MCQ' }],
+  solvedQuestions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'MCQ' }],
+  reviewQuestions: [reviewEntrySchema],
   timeTaken: { type: Number, default: 0 },
   isNewAllTimeBest: { type: Boolean, default: false },
   isNewWeeklyBest: { type: Boolean, default: false },

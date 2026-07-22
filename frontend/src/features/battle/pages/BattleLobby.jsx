@@ -125,8 +125,8 @@ const BattleLobby = () => {
                 <div style={styles.rules}>
                   <div style={styles.rulesTitle}>// rules</div>
                   <div style={styles.rulesList}>
-                    <div style={styles.rule}><span style={styles.ruleIcon}>◆</span> Problems increase in difficulty as you play more battles</div>
-                    <div style={styles.rule}><span style={styles.ruleIcon}>◆</span> Wrong answer → problem skipped, added to review</div>
+                    <div style={styles.rule}><span style={styles.ruleIcon}>◆</span> DSA multiple-choice questions — difficulty ramps from Easy to Hard within the battle</div>
+                    <div style={styles.rule}><span style={styles.ruleIcon}>◆</span> Wrong answer → question skipped, added to review with the correct answer + explanation</div>
                     <div style={styles.rule}><span style={{ ...styles.ruleIcon, color: '#ff4444' }}>◆</span> 3 wrong answers → locked out for rest of battle</div>
                     {battleType === 'solo' && (
                       <div style={styles.rule}><span style={{ ...styles.ruleIcon, color: '#00ff87' }}>◆</span> Personal best tracked per mode — weekly and all-time</div>
@@ -203,7 +203,7 @@ const styles = {
   typeLabel: { color: '#f0f0f0', fontWeight: 700, fontSize: '1.1rem' },
   typeDesc: { color: '#555', fontSize: '0.85rem', lineHeight: 1.6 },
   typeFeatures: { display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.25rem' },
-  typeFeature: { color: '#444', fontSize: '0.8rem', fontFamily: 'monospace' },
+  typeFeature: { color: '#888', fontSize: '0.8rem', fontFamily: 'monospace' },
   typeEnter: { color: '#00ff87', fontSize: '0.85rem', fontFamily: 'monospace', marginTop: 'auto', paddingTop: '0.5rem' },
   backBtn: { background: 'transparent', border: 'none', color: '#555', fontFamily: 'monospace', fontSize: '0.85rem', cursor: 'pointer', padding: '0', marginBottom: '1.5rem' },
   selectedType: { color: '#f0f0f0', fontSize: '1rem', fontWeight: 700, marginBottom: '1.5rem' },
@@ -217,7 +217,7 @@ const styles = {
   modeCard: { border: '1px solid', borderRadius: '8px', padding: '1.25rem', cursor: 'pointer', transition: 'all 0.15s', position: 'relative' },
   modeLabel: { color: '#f0f0f0', fontWeight: 700, fontSize: '1rem', marginBottom: '0.35rem' },
   modeTime: { fontSize: '0.85rem', fontFamily: 'monospace', fontWeight: 600, marginBottom: '0.5rem' },
-  modeDesc: { color: '#444', fontSize: '0.8rem', lineHeight: 1.5 },
+  modeDesc: { color: '#888', fontSize: '0.8rem', lineHeight: 1.5 },
   modeSelected: { fontSize: '0.72rem', fontFamily: 'monospace', marginTop: '0.75rem', fontWeight: 600 },
   enterBtn: { padding: '0.75rem 2.5rem', border: 'none', borderRadius: '6px', fontSize: '0.95rem', fontWeight: 700, fontFamily: 'monospace', transition: 'all 0.15s' },
 }

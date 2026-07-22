@@ -14,7 +14,7 @@ router.get('/history', authMiddleware, asyncWrapper(async (req, res) => {
   })
     .sort({ createdAt: -1 })
     .limit(20)
-    .populate('problems', 'name slug difficulty');
+    .populate('questions', 'question difficulty topic');
 
   res.json({ success: true, battles });
 }));
@@ -22,7 +22,7 @@ router.get('/history', authMiddleware, asyncWrapper(async (req, res) => {
 // get single battle result
 router.get('/:id', authMiddleware, asyncWrapper(async (req, res) => {
   const battle = await Battle.findById(req.params.id)
-    .populate('problems', 'name slug difficulty statement')
+    .populate('questions', 'question options difficulty topic')
     .populate('playerA.user', 'username')
     .populate('playerB.user', 'username');
 

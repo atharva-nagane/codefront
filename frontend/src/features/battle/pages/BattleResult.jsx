@@ -23,7 +23,7 @@ const BattleResult = () => {
     return null
   }
 
-  const { winner, isDraw, playerA, playerB, reason } = result
+  const { winner, isDraw, playerA, playerB, reason, myReview } = result
   const isWinner = winner === user?.username
   const isLoser = !isDraw && winner && winner !== user?.username
 
@@ -101,6 +101,34 @@ const BattleResult = () => {
               )}
             </div>
 
+            {/* Review — wrong answers with correct option + explanation */}
+            {myReview && myReview.length > 0 && (
+              <div style={styles.reviewCard}>
+                <div style={styles.scoreTitle}>// review — {myReview.length} missed question{myReview.length !== 1 ? 's' : ''}</div>
+                <div style={styles.reviewList}>
+                  {myReview.map((r, i) => (
+                    <div key={i} style={styles.reviewItem}>
+                      <div style={styles.reviewQuestion}>{r.question}</div>
+                      <div style={styles.reviewOptions}>
+                        {r.options.map((opt, j) => (
+                          <div key={j} style={{
+                            ...styles.reviewOption,
+                            ...(j === r.correctIndex ? styles.reviewOptionCorrect : {}),
+                            ...(j === r.selectedIndex && j !== r.correctIndex ? styles.reviewOptionWrong : {}),
+                          }}>
+                            {String.fromCharCode(65 + j)}. {opt}
+                            {j === r.correctIndex && '  ✓'}
+                            {j === r.selectedIndex && j !== r.correctIndex && '  ✗ your answer'}
+                          </div>
+                        ))}
+                      </div>
+                      <div style={styles.reviewExplanation}>{r.explanation}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Actions */}
             <div style={styles.actions}>
               <button onClick={handlePlayAgain} style={styles.playAgainBtn}>
@@ -127,21 +155,30 @@ const styles = {
   content: { flex: 1, overflowY: 'auto', padding: '2rem 3rem', background: '#0a0a0a', display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'flex-start' },
   resultBanner: { border: '1px solid', borderRadius: '8px', padding: '2rem 3rem', textAlign: 'center', minWidth: '400px' },
   resultTitle: { fontSize: '2.5rem', fontWeight: 800, fontFamily: 'monospace', marginBottom: '0.5rem' },
-  resultReason: { color: '#444', fontSize: '0.85rem', fontFamily: 'monospace' },
+  resultReason: { color: '#888', fontSize: '0.85rem', fontFamily: 'monospace' },
   scoreCard: { background: '#111', border: '1px solid #1a1a1a', borderRadius: '8px', padding: '1.5rem', minWidth: '400px' },
   scoreTitle: { color: '#2a2a2a', fontFamily: 'monospace', fontSize: '0.78rem', marginBottom: '1.5rem' },
   scoreRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: '2rem' },
   playerScore: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem' },
   playerName: { color: '#888', fontFamily: 'monospace', fontSize: '0.875rem' },
   scoreNum: { color: '#00ff87', fontSize: '2.5rem', fontWeight: 800, fontFamily: 'monospace' },
-  scoreSub: { color: '#444', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em' },
+  scoreSub: { color: '#888', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em' },
   vs: { color: '#2a2a2a', fontFamily: 'monospace', fontSize: '1rem' },
   winnerRow: { display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #1a1a1a' },
-  winnerLabel: { color: '#444', fontFamily: 'monospace', fontSize: '0.78rem' },
+  winnerLabel: { color: '#888', fontFamily: 'monospace', fontSize: '0.78rem' },
   winnerName: { color: '#ffc107', fontFamily: 'monospace', fontWeight: 700 },
   actions: { display: 'flex', gap: '1rem' },
   playAgainBtn: { padding: '0.7rem 1.5rem', background: '#a78bfa', color: '#0a0a0a', border: 'none', borderRadius: '6px', fontWeight: 700, fontFamily: 'monospace', cursor: 'pointer', fontSize: '0.9rem' },
   homeBtn: { padding: '0.7rem 1.5rem', background: 'transparent', color: '#555', border: '1px solid #2a2a2a', borderRadius: '6px', fontFamily: 'monospace', cursor: 'pointer', fontSize: '0.9rem' },
+  reviewCard: { background: '#111', border: '1px solid #1a1a1a', borderRadius: '8px', padding: '1.5rem', minWidth: '400px', maxWidth: '600px', width: '100%' },
+  reviewList: { display: 'flex', flexDirection: 'column', gap: '1.25rem' },
+  reviewItem: { borderBottom: '1px solid #1a1a1a', paddingBottom: '1.25rem' },
+  reviewQuestion: { color: '#f0f0f0', fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.75rem', lineHeight: 1.5 },
+  reviewOptions: { display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.75rem' },
+  reviewOption: { color: '#666', fontSize: '0.85rem', fontFamily: 'monospace', padding: '0.35rem 0.6rem', borderRadius: '4px' },
+  reviewOptionCorrect: { color: '#00ff87', background: '#00ff8711' },
+  reviewOptionWrong: { color: '#ff4444', background: '#ff444411' },
+  reviewExplanation: { color: '#888', fontSize: '0.82rem', lineHeight: 1.6, fontStyle: 'italic' },
 }
 
 export default BattleResult
